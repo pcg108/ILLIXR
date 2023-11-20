@@ -146,9 +146,11 @@ public:
 
         VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &timewarp_submit_info, frame_fence))
 
+        std::cout << "frame: " << frame_count << std::endl;
+
         if (frame_count % 200 == 0) {
 
-            // wait for frame to finish rendering
+            // wait sfor frame to finish rendering
             vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX);
 
             // create image in host memory 
@@ -237,7 +239,7 @@ public:
                 snprintf(&result[0], size, format, args...);
                 return result;
             };
-            std::string fname = formatted("/root/ILLIXR/build/saved_frames/%d.ppm", frame_count);
+            std::string fname = formatted("/home/eecs/prashanthcganesh108/ILLIXR/build/saved_frames/%d.ppm", frame_count);
             const char* filename = fname.c_str();
 
             std::ofstream file(filename, std::ofstream::binary);
@@ -533,7 +535,12 @@ private:
         VK_ASSERT_SUCCESS(vkCreateSemaphore(hs->vk_device, &semaphore_info, nullptr, &image_available_semaphore))
         VK_ASSERT_SUCCESS(vkCreateSemaphore(hs->vk_device, &semaphore_info, nullptr, &timewarp_render_finished_semaphore))
         VK_ASSERT_SUCCESS(vkCreateFence(hs->vk_device, &fence_info, nullptr, &frame_fence))
-        VK_ASSERT_SUCCESS(vkCreateFence(hs->vk_device, &fence_info, nullptr, &copy_frame_fence))
+
+        VkFenceCreateInfo copy_fence_info{
+            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, // sType
+            nullptr,                             // pNext
+        };
+        VK_ASSERT_SUCCESS(vkCreateFence(hs->vk_device, &copy_fence_info, nullptr, &copy_frame_fence))
     }
 
     /**
