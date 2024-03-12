@@ -40,13 +40,28 @@ protected:
         }
     }
 
+    uint64_t rdtsc(){
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
+    }
+
     void _p_one_iteration() override {
+        
+        uint64_t before = rdtsc();
+
         assert(_m_sensor_data_it != _m_sensor_data.end());
         time_point          real_now(std::chrono::duration<long, std::nano>{dataset_now - dataset_first_time});
         const sensor_types& sensor_datum = _m_sensor_data_it->second;
 
         _m_imu.put(_m_imu.allocate<imu_type>(imu_type{real_now, (sensor_datum.imu0.angular_v), (sensor_datum.imu0.linear_a)}));
         ++_m_sensor_data_it;
+
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("imu.txt", std::ios::app);
+        outputFile << after - before << std::endl;
+        outputFile.close();
     }
 
 private:

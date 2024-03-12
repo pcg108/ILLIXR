@@ -140,6 +140,8 @@ public:
     }
 
     void update_uniforms(const pose_type& render_pose) override {
+        uint64_t before = rdtsc();
+
         num_update_uniforms_calls++;
 
         // Generate "starting" view matrix, from the pose sampled at the time of rendering the frame
@@ -154,7 +156,10 @@ public:
         Eigen::Matrix4f viewMatrixBegin = Eigen::Matrix4f::Identity();
         Eigen::Matrix4f viewMatrixEnd   = Eigen::Matrix4f::Identity();
 
+
+        uint64_t before_pose = rdtsc();
         const pose_type latest_pose       = disable_warp ? render_pose : pp->get_fast_pose().pose;
+        uint64_t after_pose = rdtsc();
         viewMatrixBegin.block(0, 0, 3, 3) = latest_pose.orientation.toRotationMatrix();
 
         // TODO: We set the "end" pose to the same as the beginning pose, but this really should be the pose for
@@ -173,9 +178,24 @@ public:
         auto* ubo = (UniformBufferObject*) uniform_alloc_info.pMappedData;
         memcpy(&ubo->timewarp_start_transform, timeWarpStartTransform4x4.data(), sizeof(glm::mat4));
         memcpy(&ubo->timewarp_end_transform, timeWarpEndTransform4x4.data(), sizeof(glm::mat4));
+
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("tw.txt", std::ios::app);
+        outputFile << after - before - (after_pose - before_pose) << std::endl;
+        outputFile.close();
+
+    }
+
+    uint64_t rdtsc(){
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
     }
 
     void record_command_buffer(VkCommandBuffer commandBuffer, int buffer_ind, bool left) override {
+        uint64_t before = rdtsc();
+
         num_record_calls++;
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -191,6 +211,12 @@ public:
                                 &descriptor_sets[!left][buffer_ind], 0, nullptr);
         vkCmdBindIndexBuffer(commandBuffer, index_buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, num_distortion_indices, 1, 0, static_cast<int>(num_distortion_vertices * !left), 0);
+
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("tw.txt", std::ios::app);
+        outputFile << after - before << std::endl;
+        outputFile.close();
     }
 
     void destroy() override {
@@ -813,9 +839,24 @@ public:
         pb->register_impl<timewarp>(std::static_pointer_cast<timewarp>(tw));
     }
 
+    uint64_t rdtsc(){
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
+    }
+
     void _p_one_iteration() override {
+
+        uint64_t before = rdtsc();
+
         auto fps = tw->num_record_calls.exchange(0) / 2; // two eyes
         auto ups = tw->num_update_uniforms_calls.exchange(0);
+
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("tw.txt", std::ios::app);
+        outputFile << after - before << std::endl;
+        outputFile.close();
 
         // std::cout << "timewarp_vk: cb records: " << fps << ", uniform updates: " << ups << std::endl;
     }
@@ -839,6 +880,7 @@ private:
     std::shared_ptr<headless_sink> hs;
 
     int64_t last_print = 0;
+
 };
 
 PLUGIN_MAIN(timewarp_vk_plugin)

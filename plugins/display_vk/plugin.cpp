@@ -115,6 +115,11 @@ private:
         physical_device    = physical_device_ret.value();
         vk_physical_device = physical_device.physical_device;
 
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(vk_physical_device, &deviceProperties);
+
+        std::cout << "Device Name: " << deviceProperties.deviceName << std::endl;
+
         vkb::DeviceBuilder device_builder{physical_device};
 
         // enable timeline semaphore

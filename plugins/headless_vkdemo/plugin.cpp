@@ -133,11 +133,18 @@ public:
     }
 
     void update_uniforms(const pose_type& fp) override {
+        uint64_t before = rdtsc();
         update_uniform(fp, 0);
         update_uniform(fp, 1);
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("app.txt", std::ios::app);
+        outputFile << after - before << std::endl;
+        outputFile.close();
     }
 
     void record_command_buffer(VkCommandBuffer commandBuffer, int eye) override {
+        uint64_t before = rdtsc();
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         VkBuffer     vertexBuffers[] = {vertex_buffer};
         VkDeviceSize offsets[]       = {0};
@@ -153,11 +160,23 @@ public:
                                &push_constant);
             vkCmdDrawIndexed(commandBuffer, model.index_count, 1, model.index_offset, 0, 0);
         }
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("app.txt", std::ios::app);
+        outputFile << after - before << std::endl;
+        outputFile.close();
     }
 
     void destroy() override { }
 
 private:
+
+    uint64_t rdtsc(){
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
+    }
+
     void update_uniform(const pose_type& fp, int eye) {
         Eigen::Matrix4f modelMatrix = Eigen::Matrix4f::Identity();
 

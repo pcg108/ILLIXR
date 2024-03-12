@@ -678,5 +678,7 @@ private:
 
     int        fps{};
     time_point last_fps_update;
+
+    int frame_count = 0;
 };
 PLUGIN_MAIN(native_renderer)

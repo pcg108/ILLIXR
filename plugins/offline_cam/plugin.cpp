@@ -32,7 +32,16 @@ public:
         }
     }
 
+    uint64_t rdtsc(){
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
+    }
+
     void _p_one_iteration() override {
+
+        uint64_t before = rdtsc();
+
         duration time_since_start = _m_rtc->now().time_since_epoch();
         // duration begin            = time_since_start;
         ullong lookup_time = std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
@@ -79,6 +88,13 @@ public:
                 img1,
             }));
         }
+
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("cam.txt", std::ios::app);
+        outputFile << after - before << std::endl;
+        outputFile.close();
+
         std::this_thread::sleep_for(std::chrono::nanoseconds(after_nearest_row->first - dataset_first_time -
                                                              _m_rtc->now().time_since_epoch().count() - 2));
     }

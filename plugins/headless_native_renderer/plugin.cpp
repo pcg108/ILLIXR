@@ -63,6 +63,7 @@ public:
         tw->setup(timewarp_pass, 0, {std::vector{offscreen_image_views[0]}, std::vector{offscreen_image_views[1]}}, true);
     }
 
+
     /**
      * @brief Executes one iteration of the plugin's main loop.
      *
@@ -74,13 +75,18 @@ public:
      */
     void _p_one_iteration() override {
 
+        uint64_t before = rdtsc();
+
         // Wait for the previous frame to finish rendering
         VK_ASSERT_SUCCESS(vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
 
         VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
 
         // Get the current fast pose and update the uniforms
+
+        uint64_t before_pose = rdtsc();
         auto fast_pose = pp->get_fast_pose();
+        uint64_t subtract_pose = rdtsc() - before_pose;
         src->update_uniforms(fast_pose.pose);
 
         // Record the command buffer
@@ -146,9 +152,9 @@ public:
 
         VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &timewarp_submit_info, frame_fence))
 
-        std::cout << "frame: " << frame_count << std::endl;
+	// std::cout << "frame: " << frame_count << std::endl;
 
-        if (frame_count % 200 == 0) {
+        if (false) { // (frame_count % 200 == 0) {
 
             // wait sfor frame to finish rendering
             vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX);
@@ -286,9 +292,22 @@ public:
             fps++;
         }
         // #endif
+
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("render.txt", std::ios::app);
+        outputFile << after - before - subtract_pose << std::endl;
+        outputFile.close();
+
     }
 
 private:
+
+    uint64_t rdtsc(){
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
+    }
 
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -411,6 +430,9 @@ private:
      * 
      */
     void record_command_buffer() {
+
+
+
         // Begin recording app command buffer
         VkCommandBufferBeginInfo begin_info = {
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, // sType

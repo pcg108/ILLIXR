@@ -14,6 +14,7 @@
 #include <memory>
 #include <thread>
 #include <utility>
+#include <fstream>
 
 using namespace ILLIXR;
 // IMU sample time to live in seconds
@@ -49,10 +50,18 @@ public:
     }
 
     void callback(const switchboard::ptr<const imu_type>& datum) {
+        uint64_t before = rdtsc();
+
         _imu_vec.emplace_back(datum->time, datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 
         clean_imu_vec(datum->time);
         propagate_imu_values(datum->time);
+
+        uint64_t after = rdtsc();
+        std::ofstream outputFile;
+        outputFile.open("gtsam.txt", std::ios::app);
+        outputFile << after - before << std::endl;
+        outputFile.close();
 
         RAC_ERRNO_MSG("gtsam_integrator");
     }
@@ -77,6 +86,12 @@ private:
 
     [[maybe_unused]] time_point last_cam_time{};
     duration                    last_imu_offset{};
+
+    uint64_t rdtsc(){
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
+    }
 
     /**
      * @brief Wrapper object protecting the lifetime of IMU integration inputs and biases

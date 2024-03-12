@@ -7,6 +7,7 @@
 #include <eigen3/Eigen/Dense>
 #include <filesystem>
 #include <shared_mutex>
+#include <fstream>
 
 using namespace ILLIXR;
 
@@ -24,13 +25,27 @@ public:
     // No parameter get_fast_pose() should just predict to the next vsync
     // However, we don't have vsync estimation yet.
     // So we will predict to `now()`, as a temporary approximation
+
     fast_pose_type get_fast_pose() const override {
+        uint64_t before = rdtsc();
+
         switchboard::ptr<const switchboard::event_wrapper<time_point>> vsync_estimate = _m_vsync_estimate.get_ro_nullable();
 
+        std::ofstream outputFile;
         if (vsync_estimate == nullptr) {
-            return get_fast_pose(_m_clock->now());
+            fast_pose_type p = get_fast_pose(_m_clock->now());
+            uint64_t after = rdtsc();
+            outputFile.open("pose.txt", std::ios::app);
+            outputFile << after - before << std::endl;
+            outputFile.close();
+            return p;
         } else {
-            return get_fast_pose(*vsync_estimate);
+            fast_pose_type p = get_fast_pose(*vsync_estimate);
+            uint64_t after = rdtsc();
+            outputFile.open("pose.txt", std::ios::app);
+            outputFile << after - before << std::endl;
+            outputFile.close();
+            return p;
         }
     }
 
@@ -200,6 +215,12 @@ private:
     switchboard::reader<switchboard::event_wrapper<time_point>>      _m_vsync_estimate;
     mutable Eigen::Quaternionf                                       offset{Eigen::Quaternionf::Identity()};
     mutable std::shared_mutex                                        offset_mutex;
+
+    uint64_t rdtsc() const {
+        unsigned int lo,hi;
+        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        return ((uint64_t)hi << 32) | lo;
+    }
 
     // Slightly modified copy of OpenVINS method found in propagator.cpp
     // Returns a pair of the predictor state_plus and the time associated with the
