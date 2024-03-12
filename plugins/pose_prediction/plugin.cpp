@@ -217,9 +217,12 @@ private:
     mutable std::shared_mutex                                        offset_mutex;
 
     uint64_t rdtsc() const {
-        unsigned int lo,hi;
-        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
-        return ((uint64_t)hi << 32) | lo;
+        long cycle;
+        asm volatile ("csrr %[cycle], cycle" : [cycle] "=r" (cycle));
+        return cycle;
+        // unsigned int lo,hi;
+        // __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        // return ((uint64_t)hi << 32) | lo;
     }
 
     // Slightly modified copy of OpenVINS method found in propagator.cpp
