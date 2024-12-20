@@ -5,6 +5,7 @@
 #include "illixr/relative_clock.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
+#include <iostream>
 
 #include <chrono>
 
@@ -30,12 +31,15 @@ protected:
             dataset_now = _m_sensor_data_it->first;
             // Sleep for the difference between the current IMU vs 1st IMU and current UNIX time vs UNIX time the component was
             // init
-            std::this_thread::sleep_for(std::chrono::nanoseconds{dataset_now - dataset_first_time} -
-                                        _m_rtc->now().time_since_epoch());
+            auto x = std::chrono::nanoseconds{dataset_now - dataset_first_time} -
+                                        _m_rtc->now().time_since_epoch();
+            // std::cout << dataset_now << std::endl;
+            std::this_thread::sleep_for(x);
 
             return skip_option::run;
 
         } else {
+            std::cout << "exiting imu" << std::endl;
             return skip_option::stop;
         }
     }

@@ -138,6 +138,7 @@ private:
             case skip_option::stop:
                 // Break out of the switch AND the loop
                 // See https://stackoverflow.com/questions/27788326/breaking-out-of-nested-loop-c
+                std::cout << "at stop option" << std::endl;
                 goto break_loop;
             }
         }

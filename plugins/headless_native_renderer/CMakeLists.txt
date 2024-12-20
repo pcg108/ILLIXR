@@ -17,6 +17,9 @@ add_library(${PLUGIN_NAME} SHARED plugin.cpp
         ../../include/illixr/vk_util/display_sink.hpp
         ../../include/illixr/vk_util/render_pass.hpp
         ../../include/illixr/gl_util/lib/tiny_obj_loader.h
+        third_party/VkBootstrap.cpp
+        ../../include/illixr/vk_util/third_party/VkBootstrap.h
+        ../../include/illixr/vk_util/third_party/VkBootstrapDispatch.h
         )
 
 set_target_properties(${PLUGIN_NAME} PROPERTIES OUTPUT_NAME ${PLUGIN_NAME})

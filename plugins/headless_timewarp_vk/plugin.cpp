@@ -82,31 +82,207 @@ public:
         , disable_warp{ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_TIMEWARP_DISABLE", "False"))} { }
 
     void initialize() {
-        hs = pb->lookup_impl<headless_sink>();
 
-        if (hs->vma_allocator) {
-            this->vma_allocator = hs->vma_allocator;
-        } else {
-            this->vma_allocator = vulkan_utils::create_vma_allocator(hs->vk_instance, hs->vk_physical_device, hs->vk_device);
-            deletion_queue.emplace([=]() {
-                vmaDestroyAllocator(vma_allocator);
-            });
+        //////////// creating our own vulkan instance ///////////////////
+
+        vkb::InstanceBuilder builder;
+        auto                 instance_ret =
+            builder.set_headless(true).set_app_name("ILLIXR Vulkan Headless")
+                .require_api_version(1, 2)
+                .request_validation_layers()
+                .enable_validation_layers()
+                .set_debug_callback([](VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+                                       VkDebugUtilsMessageTypeFlagsEXT             messageType,
+                                       const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
+                    auto severity = vkb::to_string_message_severity(messageSeverity);
+                    auto type     = vkb::to_string_message_type(messageType);
+                    spdlog::get("illixr")->debug("[headless_vk] [{}: {}] {}", severity, type, pCallbackData->pMessage);
+                    return VK_FALSE;
+                })
+                .build();
+        if (!instance_ret) {
+            ILLIXR::abort("Failed to create Vulkan instance. Error: " + instance_ret.error().message());
+        }
+        vkb_instance = instance_ret.value();
+        vk_instance  = vkb_instance.instance;
+
+        vkb::PhysicalDeviceSelector selector{vkb_instance};
+
+        auto physical_device_ret = selector.set_minimum_version(1, 2)
+                                       .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
+                                       // .add_required_extension(VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME)
+                                       .select();
+
+        if (!physical_device_ret) {
+            ILLIXR::abort("Failed to select Vulkan Physical Device. Error: " + physical_device_ret.error().message());
+        } 
+        physical_device    = physical_device_ret.value();
+        vk_physical_device = physical_device.physical_device;
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(vk_physical_device, &deviceProperties);
+
+        std::cout << "Device Name: " << deviceProperties.deviceName << std::endl;
+
+        vkb::DeviceBuilder device_builder{physical_device};
+
+        // enable timeline semaphore
+        VkPhysicalDeviceTimelineSemaphoreFeatures timeline_semaphore_features{
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
+            nullptr, // pNext
+            VK_TRUE  // timelineSemaphore
+        };
+
+        // enable anisotropic filtering
+        auto device_ret = device_builder.add_pNext(&timeline_semaphore_features).build();
+        if (!device_ret) {
+            ILLIXR::abort("Failed to create Vulkan device. Error: " + device_ret.error().message());
+        }
+        vkb_device = device_ret.value();
+        vk_device  = vkb_device.device;
+
+        auto graphics_queue_ret = vkb_device.get_queue(vkb::QueueType::graphics);
+        if (!graphics_queue_ret) {
+            ILLIXR::abort("Failed to get Vulkan graphics queue. Error: " + graphics_queue_ret.error().message());
+        }
+        graphics_queue        = graphics_queue_ret.value();
+        graphics_queue_family = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
+
+        ////// create image ///////
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = display_params::width_pixels;
+        imageInfo.extent.height = display_params::height_pixels;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+        if (vkCreateImage(vk_device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create image!");
         }
 
+        /////// create image memory ///////
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(vk_device, image, &memRequirements);
+        
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        
+        if (vkAllocateMemory(vk_device, &allocInfo, nullptr, &image_memory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate image memory!");
+        }
+        vkBindImageMemory(vk_device, image, image_memory, 0);
+
+        /////// create image view ///////
+
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        
+        if (vkCreateImageView(vk_device, &viewInfo, nullptr, &image_view) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture image view!");
+        }
+
+        image_format    =   VK_FORMAT_B8G8R8A8_SRGB;
+        extent          =   VkExtent2D{display_params::width_pixels, display_params::height_pixels};
+
+        this->vma_allocator = vulkan_utils::create_vma_allocator(vk_instance, vk_physical_device, vk_device);
+        command_pool   = vulkan_utils::create_command_pool(vk_device, graphics_queue_family);
+        command_buffer = vulkan_utils::create_command_buffer(vk_device, command_pool);
+
+////////////   ///////////////////
+
+
+        // hs = pb->lookup_impl<headless_sink>();
+
+        // if (hs->vma_allocator) {
+        //     this->vma_allocator = hs->vma_allocator;
+        // } else {
+        //     this->vma_allocator = vulkan_utils::create_vma_allocator(hs->vk_instance, hs->vk_physical_device, hs->vk_device);
+        //     deletion_queue.emplace([=]() {
+        //         vmaDestroyAllocator(vma_allocator);
+        //     });
+        // }
+
         generate_distortion_data();
-        command_pool   = vulkan_utils::create_command_pool(hs->vk_device, hs->graphics_queue_family);
-        command_buffer = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
+        command_pool   = vulkan_utils::create_command_pool(vk_device, graphics_queue_family);
+        command_buffer = vulkan_utils::create_command_buffer(vk_device, command_pool);
         deletion_queue.emplace([=]() {
-            vkDestroyCommandPool(hs->vk_device, command_pool, nullptr);
+            vkDestroyCommandPool(vk_device, command_pool, nullptr);
         });
         create_vertex_buffer();
         create_index_buffer();
         create_descriptor_set_layout();
         create_uniform_buffer();
         create_texture_sampler();
+        create_timewarp_pass();
     }
 
-    void setup(VkRenderPass render_pass, uint32_t subpass, std::array<std::vector<VkImageView>, 2> buffer_pool_in,
+    void create_timewarp_pass() {
+        std::array<VkAttachmentDescription, 1> attchmentDescriptions{{{
+            0,                                // flags
+            image_format,                   // format
+            VK_SAMPLE_COUNT_1_BIT,            // samples
+            VK_ATTACHMENT_LOAD_OP_CLEAR,      // loadOp
+            VK_ATTACHMENT_STORE_OP_STORE,     // storeOp
+            VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // stencilLoadOp
+            VK_ATTACHMENT_STORE_OP_DONT_CARE, // stencilStoreOp
+            VK_IMAGE_LAYOUT_UNDEFINED,        // initialLayout
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL   // finalLayout
+        }}};
+
+        VkAttachmentReference color_attachment_ref{
+            0,                                       // attachment
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL // layout
+        };
+
+        VkSubpassDescription subpass = {
+            0,                               // flags
+            VK_PIPELINE_BIND_POINT_GRAPHICS, // pipelineBindPoint
+            0,                               // inputAttachmentCount
+            nullptr,                         // pInputAttachments
+            1,                               // colorAttachmentCount
+            &color_attachment_ref,           // pColorAttachments
+            nullptr,                         // pResolveAttachments
+            nullptr,                         // pDepthStencilAttachment
+            0,                               // preserveAttachmentCount
+            nullptr                          // pPreserveAttachments
+        };
+
+        VkRenderPassCreateInfo render_pass_info{
+            VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,           // sType
+            nullptr,                                             // pNext
+            0,                                                   // flags
+            static_cast<uint32_t>(attchmentDescriptions.size()), // attachmentCount
+            attchmentDescriptions.data(),                        // pAttachments
+            1,                                                   // subpassCount
+            &subpass,                                            // pSubpasses
+            0,                                                   // dependencyCount
+            nullptr                                              // pDependencies
+        };
+
+        VK_ASSERT_SUCCESS(vkCreateRenderPass(vk_device, &render_pass_info, nullptr, &timewarp_pass))
+    }
+
+    void setup(VkRenderPass _, uint32_t subpass, std::array<std::vector<VkImageView>, 2> buffer_pool_in,
                bool input_texture_vulkan_coordinates_in) override {
         std::lock_guard<std::mutex> lock{m_setup};
 
@@ -125,17 +301,17 @@ public:
 
         create_descriptor_pool();
         create_descriptor_sets();
-        create_pipeline(render_pass, subpass);
+        create_pipeline(timewarp_pass, subpass);
     }
 
     void partial_destroy() {
-        vkDestroyPipeline(hs->vk_device, pipeline, nullptr);
+        vkDestroyPipeline(vk_device, pipeline, nullptr);
         pipeline = VK_NULL_HANDLE;
 
-        vkDestroyPipelineLayout(hs->vk_device, pipeline_layout, nullptr);
+        vkDestroyPipelineLayout(vk_device, pipeline_layout, nullptr);
         pipeline_layout = VK_NULL_HANDLE;
 
-        vkDestroyDescriptorPool(hs->vk_device, descriptor_pool, nullptr);
+        vkDestroyDescriptorPool(vk_device, descriptor_pool, nullptr);
         descriptor_pool = VK_NULL_HANDLE;
     }
 
@@ -259,11 +435,11 @@ private:
         memcpy(mapped_data, vertices.data(), sizeof(Vertex) * num_distortion_vertices * HMD::NUM_EYES);
         vmaUnmapMemory(vma_allocator, staging_alloc);
 
-        VkCommandBuffer command_buffer_local = vulkan_utils::begin_one_time_command(hs->vk_device, command_pool);
+        VkCommandBuffer command_buffer_local = vulkan_utils::begin_one_time_command(vk_device, command_pool);
         VkBufferCopy    copy_region          = {};
         copy_region.size                     = sizeof(Vertex) * num_distortion_vertices * HMD::NUM_EYES;
         vkCmdCopyBuffer(command_buffer_local, staging_buffer, vertex_buffer, 1, &copy_region);
-        vulkan_utils::end_one_time_command(hs->vk_device, command_pool, hs->graphics_queue, command_buffer_local);
+        vulkan_utils::end_one_time_command(vk_device, command_pool, graphics_queue, command_buffer_local);
 
         vmaDestroyBuffer(vma_allocator, staging_buffer, staging_alloc);
 
@@ -319,11 +495,11 @@ private:
         memcpy(mapped_data, distortion_indices.data(), sizeof(uint32_t) * num_distortion_indices);
         vmaUnmapMemory(vma_allocator, staging_alloc);
 
-        VkCommandBuffer command_buffer_local = vulkan_utils::begin_one_time_command(hs->vk_device, command_pool);
+        VkCommandBuffer command_buffer_local = vulkan_utils::begin_one_time_command(vk_device, command_pool);
         VkBufferCopy    copy_region          = {};
         copy_region.size                     = sizeof(uint32_t) * num_distortion_indices;
         vkCmdCopyBuffer(command_buffer_local, staging_buffer, index_buffer, 1, &copy_region);
-        vulkan_utils::end_one_time_command(hs->vk_device, command_pool, hs->graphics_queue, command_buffer_local);
+        vulkan_utils::end_one_time_command(vk_device, command_pool, graphics_queue, command_buffer_local);
 
         vmaDestroyBuffer(vma_allocator, staging_buffer, staging_alloc);
 
@@ -381,10 +557,10 @@ private:
         samplerInfo.minLod     = 0.f;
         samplerInfo.maxLod     = 0.f;
 
-        VK_ASSERT_SUCCESS(vkCreateSampler(hs->vk_device, &samplerInfo, nullptr, &fb_sampler))
+        VK_ASSERT_SUCCESS(vkCreateSampler(vk_device, &samplerInfo, nullptr, &fb_sampler))
 
         deletion_queue.emplace([=]() {
-            vkDestroySampler(hs->vk_device, fb_sampler, nullptr);
+            vkDestroySampler(vk_device, fb_sampler, nullptr);
         });
     }
 
@@ -407,9 +583,9 @@ private:
         layoutInfo.bindingCount                                = static_cast<uint32_t>(bindings.size());
         layoutInfo.pBindings = bindings.data(); // array of VkDescriptorSetLayoutBinding structs
 
-        VK_ASSERT_SUCCESS(vkCreateDescriptorSetLayout(hs->vk_device, &layoutInfo, nullptr, &descriptor_set_layout))
+        VK_ASSERT_SUCCESS(vkCreateDescriptorSetLayout(vk_device, &layoutInfo, nullptr, &descriptor_set_layout))
         deletion_queue.emplace([=]() {
-            vkDestroyDescriptorSetLayout(hs->vk_device, descriptor_set_layout, nullptr);
+            vkDestroyDescriptorSetLayout(vk_device, descriptor_set_layout, nullptr);
         });
     }
 
@@ -458,7 +634,7 @@ private:
         poolInfo.pPoolSizes    = poolSizes.data();
         poolInfo.maxSets       = buffer_pool[0].size() * 2;
 
-        VK_ASSERT_SUCCESS(vkCreateDescriptorPool(hs->vk_device, &poolInfo, nullptr, &descriptor_pool))
+        VK_ASSERT_SUCCESS(vkCreateDescriptorPool(vk_device, &poolInfo, nullptr, &descriptor_pool))
     }
 
     void create_descriptor_sets() {
@@ -477,7 +653,7 @@ private:
             allocInfo.pSetLayouts        = layouts.data();
 
             descriptor_sets[eye].resize(buffer_pool[0].size());
-            VK_ASSERT_SUCCESS(vkAllocateDescriptorSets(hs->vk_device, &allocInfo, descriptor_sets[eye].data()))
+            VK_ASSERT_SUCCESS(vkAllocateDescriptorSets(vk_device, &allocInfo, descriptor_sets[eye].data()))
 
             for (size_t i = 0; i < buffer_pool[0].size(); i++) {
                 VkDescriptorBufferInfo bufferInfo = {};
@@ -508,7 +684,7 @@ private:
                 descriptorWrites[1].descriptorCount = 1;
                 descriptorWrites[1].pImageInfo      = &imageInfo;
 
-                vkUpdateDescriptorSets(hs->vk_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
+                vkUpdateDescriptorSets(vk_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
                                        0, nullptr);
             }
         }
@@ -519,7 +695,7 @@ private:
             throw std::runtime_error("timewarp_vk::create_pipeline: pipeline already created");
         }
 
-        VkDevice device = hs->vk_device;
+        VkDevice device = vk_device;
 
         auto           folder = std::string(SHADER_FOLDER);
         VkShaderModule vert   = vulkan_utils::create_shader_module(device, vulkan_utils::read_file(folder + "/tw.vert.spv"));
@@ -753,6 +929,37 @@ private:
         transform = texCoordProjection * deltaViewMatrix;
     }
 
+   
+   uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+        // has memoryTypes and memoryHeaps
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(vk_physical_device, &memProperties);
+        
+        // check which memory type has the properties we want
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
+        throw std::runtime_error("failed to find suitable memory type!");
+    }
+
+    vkb::Instance                      vkb_instance;
+    vkb::PhysicalDevice                physical_device;
+    vkb::Device                        vkb_device;
+    VkInstance       vk_instance;
+    VkPhysicalDevice vk_physical_device;
+    VkDevice         vk_device;
+    VkQueue          graphics_queue;
+    uint32_t         graphics_queue_family;
+    VkImage                 image;
+    VkDeviceMemory          image_memory;
+    VkImageView             image_view;
+    VkFormat                image_format;
+    VkExtent2D              extent;
+
+    VkRenderPass timewarp_pass{};
+   
     const phonebook* const                 pb;
     const std::shared_ptr<switchboard>     sb;
     const std::shared_ptr<pose_prediction> pp;
@@ -835,6 +1042,7 @@ public:
     }
 
 private:
+
     std::shared_ptr<timewarp_vk>  tw;
     std::shared_ptr<headless_sink> hs;
 

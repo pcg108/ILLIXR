@@ -27,7 +27,7 @@ public:
         : threadloop{name_, pb}
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
-        , hs{pb->lookup_impl<headless_sink>()}
+        // , hs{pb->lookup_impl<headless_sink>()}
         , tw{pb->lookup_impl<timewarp>()}
         , src{pb->lookup_impl<app>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
@@ -43,6 +43,137 @@ public:
      * application and timewarp with their respective passes.
      */
     void _p_thread_setup() override {
+
+//////////// creating our own vulkan instance ///////////////////
+
+        vkb::InstanceBuilder builder;
+        auto                 instance_ret =
+            builder.set_headless(true).set_app_name("ILLIXR Vulkan Headless")
+                .require_api_version(1, 2)
+                .request_validation_layers()
+                .enable_validation_layers()
+                .set_debug_callback([](VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+                                       VkDebugUtilsMessageTypeFlagsEXT             messageType,
+                                       const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
+                    auto severity = vkb::to_string_message_severity(messageSeverity);
+                    auto type     = vkb::to_string_message_type(messageType);
+                    spdlog::get("illixr")->debug("[headless_vk] [{}: {}] {}", severity, type, pCallbackData->pMessage);
+                    return VK_FALSE;
+                })
+                .build();
+        if (!instance_ret) {
+            ILLIXR::abort("Failed to create Vulkan instance. Error: " + instance_ret.error().message());
+        }
+        vkb_instance = instance_ret.value();
+        vk_instance  = vkb_instance.instance;
+
+        vkb::PhysicalDeviceSelector selector{vkb_instance};
+
+        auto physical_device_ret = selector.set_minimum_version(1, 2)
+                                       .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
+                                       // .add_required_extension(VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME)
+                                       .select();
+
+        if (!physical_device_ret) {
+            ILLIXR::abort("Failed to select Vulkan Physical Device. Error: " + physical_device_ret.error().message());
+        } 
+        physical_device    = physical_device_ret.value();
+        vk_physical_device = physical_device.physical_device;
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(vk_physical_device, &deviceProperties);
+
+        std::cout << "Device Name: " << deviceProperties.deviceName << std::endl;
+
+        vkb::DeviceBuilder device_builder{physical_device};
+
+        // enable timeline semaphore
+        VkPhysicalDeviceTimelineSemaphoreFeatures timeline_semaphore_features{
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
+            nullptr, // pNext
+            VK_TRUE  // timelineSemaphore
+        };
+
+        // enable anisotropic filtering
+        auto device_ret = device_builder.add_pNext(&timeline_semaphore_features).build();
+        if (!device_ret) {
+            ILLIXR::abort("Failed to create Vulkan device. Error: " + device_ret.error().message());
+        }
+        vkb_device = device_ret.value();
+        vk_device  = vkb_device.device;
+
+        auto graphics_queue_ret = vkb_device.get_queue(vkb::QueueType::graphics);
+        if (!graphics_queue_ret) {
+            ILLIXR::abort("Failed to get Vulkan graphics queue. Error: " + graphics_queue_ret.error().message());
+        }
+        graphics_queue        = graphics_queue_ret.value();
+        graphics_queue_family = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
+
+        ////// create image ///////
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = display_params::width_pixels;
+        imageInfo.extent.height = display_params::height_pixels;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+        if (vkCreateImage(vk_device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create image!");
+        }
+
+        /////// create image memory ///////
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(vk_device, image, &memRequirements);
+        
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        
+        if (vkAllocateMemory(vk_device, &allocInfo, nullptr, &image_memory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate image memory!");
+        }
+        vkBindImageMemory(vk_device, image, image_memory, 0);
+
+        /////// create image view ///////
+
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        
+        if (vkCreateImageView(vk_device, &viewInfo, nullptr, &image_view) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture image view!");
+        }
+
+        image_format    =   VK_FORMAT_B8G8R8A8_SRGB;
+        extent          =   VkExtent2D{display_params::width_pixels, display_params::height_pixels};
+
+        this->vma_allocator = vulkan_utils::create_vma_allocator(vk_instance, vk_physical_device, vk_device);
+        command_pool            = vulkan_utils::create_command_pool(vk_device, graphics_queue_family);
+        app_command_buffer      = vulkan_utils::create_command_buffer(vk_device, command_pool);
+        timewarp_command_buffer = vulkan_utils::create_command_buffer(vk_device, command_pool);
+
+
+////////////   ///////////////////
+
+
         for (auto i = 0; i < 2; i++) {
             create_depth_image(&depth_images[i], &depth_image_allocations[i], &depth_image_views[i]);
         }
@@ -50,15 +181,17 @@ public:
             create_offscreen_target(&offscreen_images[i], &offscreen_image_allocations[i], &offscreen_image_views[i],
                                     &offscreen_framebuffers[i]);
         }
-        command_pool            = vulkan_utils::create_command_pool(hs->vk_device, hs->graphics_queue_family);
-        app_command_buffer      = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
-        timewarp_command_buffer = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
+        // command_pool            = vulkan_utils::create_command_pool(hs->vk_device, hs->graphics_queue_family);
+        // app_command_buffer      = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
+        // timewarp_command_buffer = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
+
         create_sync_objects();
-        create_app_pass();
-        create_timewarp_pass();
+        // create_app_pass();
+        // create_timewarp_pass();
         create_sync_objects();
         create_offscreen_framebuffers();
         create_framebuffer();
+        // src->setup(app_pass, 0);
         src->setup(app_pass, 0);
         tw->setup(timewarp_pass, 0, {std::vector{offscreen_image_views[0]}, std::vector{offscreen_image_views[1]}}, true);
     }
@@ -75,9 +208,9 @@ public:
     void _p_one_iteration() override {
 
         // Wait for the previous frame to finish rendering
-        VK_ASSERT_SUCCESS(vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
+        VK_ASSERT_SUCCESS(vkWaitForFences(vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
 
-        VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
+        VK_ASSERT_SUCCESS(vkResetFences(vk_device, 1, &frame_fence))
 
         // Get the current fast pose and update the uniforms
         auto fast_pose = pp->get_fast_pose();
@@ -114,7 +247,7 @@ public:
             &app_render_finished_semaphore // pSignalSemaphores
         };
 
-        VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &submit_info, nullptr))
+        VK_ASSERT_SUCCESS(vkQueueSubmit(graphics_queue, 1, &submit_info, nullptr))
 
         // Wait for the application to finish rendering
         VkSemaphoreWaitInfo wait_info{
@@ -125,7 +258,7 @@ public:
             &app_render_finished_semaphore,        // pSemaphores
             &fired_value                           // pValues
         };
-        VK_ASSERT_SUCCESS(vkWaitSemaphores(hs->vk_device, &wait_info, UINT64_MAX))
+        VK_ASSERT_SUCCESS(vkWaitSemaphores(vk_device, &wait_info, UINT64_MAX))
 
         // TODO: for DRM, get vsync estimate
         std::this_thread::sleep_for(display_params::period / 6.0 * 5);
@@ -144,14 +277,14 @@ public:
             nullptr                              // pSignalSemaphores
         };
 
-        VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &timewarp_submit_info, frame_fence))
+        VK_ASSERT_SUCCESS(vkQueueSubmit(graphics_queue, 1, &timewarp_submit_info, frame_fence))
 
-        std::cout << "frame: " << frame_count << std::endl;
+	// std::cout << "frame: " << frame_count << std::endl;
 
         if (frame_count % 200 == 0) {
 
             // wait sfor frame to finish rendering
-            vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX);
+            vkWaitForFences(vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX);
 
             // create image in host memory 
             VkImage dstImage;
@@ -159,39 +292,39 @@ public:
             VkImageCreateInfo imageInfo{};
             imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
             imageInfo.imageType = VK_IMAGE_TYPE_2D;
-            imageInfo.extent.width = hs->extent.width;
-            imageInfo.extent.height = hs->extent.height;
+            imageInfo.extent.width = extent.width;
+            imageInfo.extent.height = extent.height;
             imageInfo.extent.depth = 1;
             imageInfo.mipLevels = 1;
             imageInfo.arrayLayers = 1;
-            imageInfo.format = hs->image_format;
+            imageInfo.format = image_format;
             imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
             imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
             imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-            if (vkCreateImage(hs->vk_device, &imageInfo, nullptr, &dstImage) != VK_SUCCESS) {
+            if (vkCreateImage(vk_device, &imageInfo, nullptr, &dstImage) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create destination image!");
             }
             
             VkDeviceMemory dstImageMemory;
 
             VkMemoryRequirements memRequirements;
-            vkGetImageMemoryRequirements(hs->vk_device, dstImage, &memRequirements);
+            vkGetImageMemoryRequirements(vk_device, dstImage, &memRequirements);
             
             VkMemoryAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             allocInfo.allocationSize = memRequirements.size;
             allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
             
-            if (vkAllocateMemory(hs->vk_device, &allocInfo, nullptr, &dstImageMemory) != VK_SUCCESS) {
+            if (vkAllocateMemory(vk_device, &allocInfo, nullptr, &dstImageMemory) != VK_SUCCESS) {
                 throw std::runtime_error("failed to allocate image memory!");
             }
-            vkBindImageMemory(hs->vk_device, dstImage, dstImageMemory, 0);
+            vkBindImageMemory(vk_device, dstImage, dstImageMemory, 0);
 
             // transition dstImage to optimal layout for recieving the image
-            transitionImageLayout(dstImage, hs->image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            transitionImageLayout(dstImage, image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
             // copy image
             VkCommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -201,13 +334,13 @@ public:
             imageCopyRegion.srcSubresource.layerCount = 1;
             imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             imageCopyRegion.dstSubresource.layerCount = 1;
-            imageCopyRegion.extent.width = hs->extent.width;
-            imageCopyRegion.extent.height = hs->extent.height;
+            imageCopyRegion.extent.width = extent.width;
+            imageCopyRegion.extent.height = extent.height;
             imageCopyRegion.extent.depth = 1;
             
             vkCmdCopyImage(
                            commandBuffer,
-                           hs->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                            dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            1,
                            &imageCopyRegion);
@@ -216,7 +349,7 @@ public:
             endSingleTimeCommands(commandBuffer, copy_frame_fence);
 
             // wait for copy to complete
-            vkWaitForFences(hs->vk_device, 1, &copy_frame_fence, VK_TRUE, UINT64_MAX);
+            vkWaitForFences(vk_device, 1, &copy_frame_fence, VK_TRUE, UINT64_MAX);
             
             // transition image to general layout to write to file later
             transitionImageLayout(dstImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
@@ -225,11 +358,11 @@ public:
             VkImageSubresource subResource{};
             subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             VkSubresourceLayout subResourceLayout;
-            vkGetImageSubresourceLayout(hs->vk_device, dstImage, &subResource, &subResourceLayout);
+            vkGetImageSubresourceLayout(vk_device, dstImage, &subResource, &subResourceLayout);
             
             // Map image memory to a pointer so we can start copying from it
             const char* imagedata;
-            vkMapMemory(hs->vk_device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&imagedata);
+            vkMapMemory(vk_device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&imagedata);
             imagedata += subResourceLayout.offset;
 
             // filename lol
@@ -244,12 +377,12 @@ public:
 
             std::ofstream file(filename, std::ofstream::binary);
             // ppm header
-            file << "P6\n" << hs->extent.width << "\n" << hs->extent.height << "\n" << 255 << "\n";
+            file << "P6\n" << extent.width << "\n" << extent.height << "\n" << 255 << "\n";
 
             
-            for (int32_t y = 0; y < hs->extent.height; y++) {
+            for (int32_t y = 0; y < extent.height; y++) {
                 unsigned int *row = (unsigned int*)imagedata;
-                for (int32_t x = 0; x < hs->extent.width; x++) {
+                for (int32_t x = 0; x < extent.width; x++) {
                     
                     // swizzle colors because format is VK_FORMAT_B8G8R8A8_SRGB, so switch BGR to RGB
                     file.write((char*)row+2, 1);
@@ -265,12 +398,12 @@ public:
             std::cout << "saved " << fname.c_str() << std::endl;
             
             // reset fence for copy operation
-            vkResetFences(hs->vk_device, 1, &copy_frame_fence);
+            vkResetFences(vk_device, 1, &copy_frame_fence);
             
             // unmap and free memory
-            vkUnmapMemory(hs->vk_device, dstImageMemory);
-            vkFreeMemory(hs->vk_device, dstImageMemory, nullptr);
-            vkDestroyImage(hs->vk_device, dstImage, nullptr);
+            vkUnmapMemory(vk_device, dstImageMemory);
+            vkFreeMemory(vk_device, dstImageMemory, nullptr);
+            vkDestroyImage(vk_device, dstImage, nullptr);
 
         }
 
@@ -342,7 +475,7 @@ private:
         allocInfo.commandBufferCount = 1;
         
         VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(hs->vk_device, &allocInfo, &commandBuffer);
+        vkAllocateCommandBuffers(vk_device, &allocInfo, &commandBuffer);
         
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -361,15 +494,15 @@ private:
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
         
-        vkQueueSubmit(hs->graphics_queue, 1, &submitInfo, fence);
-        vkQueueWaitIdle(hs->graphics_queue);
-        vkFreeCommandBuffers(hs->vk_device, command_pool, 1, &commandBuffer);
+        vkQueueSubmit(graphics_queue, 1, &submitInfo, fence);
+        vkQueueWaitIdle(graphics_queue);
+        vkFreeCommandBuffers(vk_device, command_pool, 1, &commandBuffer);
     }
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         // has memoryTypes and memoryHeaps
         VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(hs->vk_physical_device, &memProperties);
+        vkGetPhysicalDeviceMemoryProperties(vk_physical_device, &memProperties);
         
         // check which memory type has the properties we want
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
@@ -387,7 +520,7 @@ private:
      */
     void create_framebuffer() {
 
-        std::array<VkImageView, 1> attachments = {hs->image_view};
+        std::array<VkImageView, 1> attachments = {image_view};
 
         assert(timewarp_pass != VK_NULL_HANDLE);
         VkFramebufferCreateInfo framebuffer_info{
@@ -397,12 +530,12 @@ private:
             timewarp_pass,                             // renderPass
             attachments.size(),                        // attachmentCount
             attachments.data(),                        // pAttachments
-            hs->extent.width,                           // width
-            hs->extent.height,                          // height
+            extent.width,                           // width
+            extent.height,                          // height
             1                                          // layers
         };
 
-        VK_ASSERT_SUCCESS(vkCreateFramebuffer(hs->vk_device, &framebuffer_info, nullptr, &framebuffer))
+        VK_ASSERT_SUCCESS(vkCreateFramebuffer(vk_device, &framebuffer_info, nullptr, &framebuffer))
         
     }
 
@@ -433,7 +566,7 @@ private:
                 offscreen_framebuffers[eye],              // framebuffer
                 {
                     {0, 0},              // offset
-                    hs->extent           // extent
+                    extent           // extent
                 },                       // renderArea
                 clear_values.size(),     // clearValueCount
                 clear_values.data()      // pClearValues
@@ -463,7 +596,7 @@ private:
                 framebuffer,                                    // framebuffer
                 {
                     {0, 0},              // offset
-                    hs->extent          // extent
+                    extent          // extent
                 },                       // renderArea
                 1,                       // clearValueCount
                 &clear_value             // pClearValues
@@ -473,10 +606,10 @@ private:
 
             for (auto eye = 0; eye < 2; eye++) {
                 VkViewport viewport{
-                    static_cast<float>(hs->extent.width / 2. * eye),            // x
+                    static_cast<float>(extent.width / 2. * eye),            // x
                     0.0f,                                                      // y
-                    static_cast<float>(hs->extent.width),                       // width
-                    static_cast<float>(hs->extent.height),                      // height
+                    static_cast<float>(extent.width),                       // width
+                    static_cast<float>(extent.height),                      // height
                     0.0f,                                                      // minDepth
                     1.0f                                                       // maxDepth
                 };
@@ -484,7 +617,7 @@ private:
 
                 VkRect2D scissor{
                     {0, 0},              // offset
-                    hs->extent          // extent
+                    extent          // extent
                 };
                 vkCmdSetScissor(timewarp_command_buffer, 0, 1, &scissor);
 
@@ -519,7 +652,7 @@ private:
             0                                        // flags
         };
 
-        vkCreateSemaphore(hs->vk_device, &create_info, nullptr, &app_render_finished_semaphore);
+        vkCreateSemaphore(vk_device, &create_info, nullptr, &app_render_finished_semaphore);
 
         VkSemaphoreCreateInfo semaphore_info{
             VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, // sType
@@ -532,15 +665,15 @@ private:
             VK_FENCE_CREATE_SIGNALED_BIT         // flags
         };
 
-        VK_ASSERT_SUCCESS(vkCreateSemaphore(hs->vk_device, &semaphore_info, nullptr, &image_available_semaphore))
-        VK_ASSERT_SUCCESS(vkCreateSemaphore(hs->vk_device, &semaphore_info, nullptr, &timewarp_render_finished_semaphore))
-        VK_ASSERT_SUCCESS(vkCreateFence(hs->vk_device, &fence_info, nullptr, &frame_fence))
+        VK_ASSERT_SUCCESS(vkCreateSemaphore(vk_device, &semaphore_info, nullptr, &image_available_semaphore))
+        VK_ASSERT_SUCCESS(vkCreateSemaphore(vk_device, &semaphore_info, nullptr, &timewarp_render_finished_semaphore))
+        VK_ASSERT_SUCCESS(vkCreateFence(vk_device, &fence_info, nullptr, &frame_fence))
 
         VkFenceCreateInfo copy_fence_info{
             VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, // sType
             nullptr,                             // pNext
         };
-        VK_ASSERT_SUCCESS(vkCreateFence(hs->vk_device, &copy_fence_info, nullptr, &copy_frame_fence))
+        VK_ASSERT_SUCCESS(vkCreateFence(vk_device, &copy_fence_info, nullptr, &copy_frame_fence))
     }
 
     /**
@@ -576,7 +709,7 @@ private:
         alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
         VK_ASSERT_SUCCESS(
-            vmaCreateImage(hs->vma_allocator, &image_info, &alloc_info, depth_image, depth_image_allocation, nullptr))
+            vmaCreateImage(vma_allocator, &image_info, &alloc_info, depth_image, depth_image_allocation, nullptr))
 
         VkImageViewCreateInfo view_info{
             VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, // sType
@@ -595,7 +728,7 @@ private:
             }                              // subresourceRange
         };
 
-        VK_ASSERT_SUCCESS(vkCreateImageView(hs->vk_device, &view_info, nullptr, depth_image_view))
+        VK_ASSERT_SUCCESS(vkCreateImageView(vk_device, &view_info, nullptr, depth_image_view))
     }
 
     /**
@@ -632,7 +765,7 @@ private:
         VmaAllocationCreateInfo alloc_info{.usage = VMA_MEMORY_USAGE_GPU_ONLY};
 
         VK_ASSERT_SUCCESS(
-            vmaCreateImage(hs->vma_allocator, &image_info, &alloc_info, offscreen_image, offscreen_image_allocation, nullptr))
+            vmaCreateImage(vma_allocator, &image_info, &alloc_info, offscreen_image, offscreen_image_allocation, nullptr))
 
         VkImageViewCreateInfo view_info{
             VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, // sType
@@ -651,7 +784,7 @@ private:
             }                              // subresourceRange
         };
 
-        VK_ASSERT_SUCCESS(vkCreateImageView(hs->vk_device, &view_info, nullptr, offscreen_image_view))
+        VK_ASSERT_SUCCESS(vkCreateImageView(vk_device, &view_info, nullptr, offscreen_image_view))
     }
 
     /**
@@ -674,7 +807,7 @@ private:
                 1                                          // layers
             };
 
-            VK_ASSERT_SUCCESS(vkCreateFramebuffer(hs->vk_device, &framebuffer_info, nullptr, &offscreen_framebuffers[eye]))
+            VK_ASSERT_SUCCESS(vkCreateFramebuffer(vk_device, &framebuffer_info, nullptr, &offscreen_framebuffers[eye]))
         }
     }
 
@@ -768,7 +901,7 @@ private:
             static_cast<uint32_t>(dependencies.size()),          // dependencyCount
             dependencies.data()                                  // pDependencies
         };
-        VK_ASSERT_SUCCESS(vkCreateRenderPass(hs->vk_device, &render_pass_info, nullptr, &app_pass))
+        VK_ASSERT_SUCCESS(vkCreateRenderPass(vk_device, &render_pass_info, nullptr, &app_pass))
     }
 
     /**
@@ -777,7 +910,7 @@ private:
     void create_timewarp_pass() {
         std::array<VkAttachmentDescription, 1> attchmentDescriptions{{{
             0,                                // flags
-            hs->image_format,                   // format
+            image_format,                   // format
             VK_SAMPLE_COUNT_1_BIT,            // samples
             VK_ATTACHMENT_LOAD_OP_CLEAR,      // loadOp
             VK_ATTACHMENT_STORE_OP_STORE,     // storeOp
@@ -817,8 +950,23 @@ private:
             nullptr                                              // pDependencies
         };
 
-        VK_ASSERT_SUCCESS(vkCreateRenderPass(hs->vk_device, &render_pass_info, nullptr, &timewarp_pass))
+        VK_ASSERT_SUCCESS(vkCreateRenderPass(vk_device, &render_pass_info, nullptr, &timewarp_pass))
     }
+
+    VmaAllocator    vma_allocator{};
+    vkb::Instance                      vkb_instance;
+    vkb::PhysicalDevice                physical_device;
+    vkb::Device                        vkb_device;
+    VkInstance       vk_instance;
+    VkPhysicalDevice vk_physical_device;
+    VkDevice         vk_device;
+    VkQueue          graphics_queue;
+    uint32_t         graphics_queue_family;
+    VkImage                 image;
+    VkDeviceMemory          image_memory;
+    VkImageView             image_view;
+    VkFormat                image_format;
+    VkExtent2D              extent;
 
     const std::shared_ptr<switchboard>         sb;
     const std::shared_ptr<pose_prediction>     pp;

@@ -43,6 +43,9 @@ add_library(${PLUGIN_NAME} SHARED plugin.cpp
         ../../include/illixr/vk_util/render_pass.hpp
         ../../include/illixr/gl_util/lib/tiny_obj_loader.h
         ../../include/illixr/gl_util/lib/stb_image.h
+        third_party/VkBootstrap.cpp
+        ../../include/illixr/vk_util/third_party/VkBootstrap.h
+        ../../include/illixr/vk_util/third_party/VkBootstrapDispatch.h
         )
 
 add_dependencies(${PLUGIN_NAME} Headless_Vkdemo_Shaders)

@@ -7,6 +7,7 @@
 #include <chrono>
 #include <shared_mutex>
 #include <thread>
+#include <iostream>
 
 using namespace ILLIXR;
 
@@ -52,6 +53,7 @@ public:
             nearest_row       = std::prev(after_nearest_row, 1);
             after_nearest_row = nearest_row;
             // We are running out of the dataset and the loop will stop next time.
+            std::cout << "cam needs to stop" << std::endl;
             internal_stop();
         } else if (after_nearest_row == _m_sensor_data.cbegin()) {
             // Should not happen because lookup_time is bigger than dataset_first_time

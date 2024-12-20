@@ -48,6 +48,9 @@ add_library(${PLUGIN_NAME} SHARED plugin.cpp
         ../../include/illixr/vk_util/display_sink.hpp
         ../../include/illixr/vk_util/render_pass.hpp
         ../../include/illixr/vk_util/vulkan_utils.hpp
+        third_party/VkBootstrap.cpp
+        ../../include/illixr/vk_util/third_party/VkBootstrap.h
+        ../../include/illixr/vk_util/third_party/VkBootstrapDispatch.h
         )
 
 add_dependencies(${PLUGIN_NAME} Headless_Timewarp_VK_Shaders)
