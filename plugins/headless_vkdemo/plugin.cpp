@@ -99,6 +99,7 @@ public:
     explicit headless_vkdemo(const phonebook* const pb)
         : sb{pb->lookup_impl<switchboard>()}
         , hs{pb->lookup_impl<headless_sink>()}
+        , pp{pb->lookup_impl<pose_prediction>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()} { }
 
     void initialize() {
@@ -133,8 +134,10 @@ public:
     }
 
     void update_uniforms(const pose_type& fp) override {
+
         update_uniform(fp, 0);
         update_uniform(fp, 1);
+
     }
 
     void record_command_buffer(VkCommandBuffer commandBuffer, int eye) override {
@@ -258,12 +261,14 @@ private:
             };
 
             VmaAllocationCreateInfo alloc_info{};
-            alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+            alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT; 
             alloc_info.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
+            std::cout << "vkdemo uniform buffer" << std::endl;
             VK_ASSERT_SUCCESS(vmaCreateBuffer(vma_allocator, &buffer_info, &alloc_info, &uniform_buffers[i],
                                               &uniform_buffer_allocations[i], &uniform_buffer_allocation_infos[i]))
         }
+
     }
 
     void create_descriptor_pool() {
@@ -448,9 +453,10 @@ private:
         };
 
         VmaAllocationCreateInfo alloc_info{};
-        alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
 
+        std::cout << "vkdemo texture buffer" << std::endl;
         VK_ASSERT_SUCCESS(vmaCreateBuffer(vma_allocator, &buffer_info, &alloc_info, &staging_buffer, &staging_buffer_allocation,
                                           &staging_buffer_allocation_info))
 
@@ -481,7 +487,9 @@ private:
         };
 
         VmaAllocationCreateInfo image_alloc_info{};
-        image_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        image_alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        image_alloc_info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+        image_alloc_info.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
         VK_ASSERT_SUCCESS(vmaCreateImage(vma_allocator, &image_info, &image_alloc_info, &textures[i].image,
                                          &textures[i].image_memory, nullptr))
@@ -640,11 +648,12 @@ private:
         };
 
         VmaAllocationCreateInfo staging_alloc_info{};
-        staging_alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        staging_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+        staging_alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        staging_alloc_info.usage = VMA_MEMORY_USAGE_AUTO; 
 
         VkBuffer      staging_buffer;
         VmaAllocation staging_buffer_allocation;
+        std::cout << "vkdemo vertex staging buffer" << std::endl;
         VK_ASSERT_SUCCESS(vmaCreateBuffer(vma_allocator, &staging_buffer_info, &staging_alloc_info, &staging_buffer,
                                           &staging_buffer_allocation, nullptr))
 
@@ -660,8 +669,10 @@ private:
         };
 
         VmaAllocationCreateInfo alloc_info{};
+        alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
+        std::cout << "vkdemo vertex actual buffer" << std::endl;
         VmaAllocation buffer_allocation;
         VK_ASSERT_SUCCESS(
             vmaCreateBuffer(vma_allocator, &buffer_info, &alloc_info, &vertex_buffer, &buffer_allocation, nullptr))
@@ -696,11 +707,12 @@ private:
         };
 
         VmaAllocationCreateInfo staging_alloc_info{};
-        staging_alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        staging_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+        staging_alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        staging_alloc_info.usage = VMA_MEMORY_USAGE_AUTO; 
 
         VkBuffer      staging_buffer;
         VmaAllocation staging_buffer_allocation;
+        std::cout << "vkdemo index staging buffer" << std::endl;
         VK_ASSERT_SUCCESS(vmaCreateBuffer(vma_allocator, &staging_buffer_info, &staging_alloc_info, &staging_buffer,
                                           &staging_buffer_allocation, nullptr))
 
@@ -716,8 +728,10 @@ private:
         };
 
         VmaAllocationCreateInfo alloc_info{};
+        alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
+        std::cout << "vkdemo index actual buffer" << std::endl;
         VmaAllocation buffer_allocation;
         VK_ASSERT_SUCCESS(vmaCreateBuffer(vma_allocator, &buffer_info, &alloc_info, &index_buffer, &buffer_allocation, nullptr))
 

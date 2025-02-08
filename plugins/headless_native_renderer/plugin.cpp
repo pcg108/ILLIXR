@@ -146,8 +146,6 @@ public:
 
         VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &timewarp_submit_info, frame_fence))
 
-        std::cout << "frame: " << frame_count << std::endl;
-
         if (frame_count % 200 == 0) {
 
             // wait sfor frame to finish rendering
@@ -574,6 +572,7 @@ private:
 
         VmaAllocationCreateInfo alloc_info{};
         alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
         VK_ASSERT_SUCCESS(
             vmaCreateImage(hs->vma_allocator, &image_info, &alloc_info, depth_image, depth_image_allocation, nullptr))
@@ -629,7 +628,9 @@ private:
             {}                                                                // initialLayout
         };
 
-        VmaAllocationCreateInfo alloc_info{.usage = VMA_MEMORY_USAGE_GPU_ONLY};
+        VmaAllocationCreateInfo alloc_info = {};
+        alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
         VK_ASSERT_SUCCESS(
             vmaCreateImage(hs->vma_allocator, &image_info, &alloc_info, offscreen_image, offscreen_image_allocation, nullptr))

@@ -219,10 +219,11 @@ private:
 
         VmaAllocationCreateInfo staging_alloc_info = {};
         staging_alloc_info.usage                   = VMA_MEMORY_USAGE_AUTO;
-        staging_alloc_info.flags                   = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        staging_alloc_info.flags                   = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
         VkBuffer      staging_buffer;
         VmaAllocation staging_alloc;
+        std::cout << "timewarp vertex staging buffer" << std::endl;
         VK_ASSERT_SUCCESS(
             vmaCreateBuffer(vma_allocator, &staging_buffer_info, &staging_alloc_info, &staging_buffer, &staging_alloc, nullptr))
 
@@ -240,8 +241,10 @@ private:
         buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
         VmaAllocationCreateInfo alloc_info = {};
+        alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         alloc_info.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
 
+        std::cout << "timewarp vertex actual buffer" << std::endl;
         VmaAllocation vertex_alloc;
         VK_ASSERT_SUCCESS(vmaCreateBuffer(vma_allocator, &buffer_info, &alloc_info, &vertex_buffer, &vertex_alloc, nullptr))
 
@@ -288,10 +291,11 @@ private:
 
         VmaAllocationCreateInfo staging_alloc_info = {};
         staging_alloc_info.usage                   = VMA_MEMORY_USAGE_AUTO;
-        staging_alloc_info.flags                   = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        staging_alloc_info.flags                   = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
         VkBuffer      staging_buffer;
         VmaAllocation staging_alloc;
+        std::cout << "timewarp index staging buffer" << std::endl;
         VK_ASSERT_SUCCESS(
             vmaCreateBuffer(vma_allocator, &staging_buffer_info, &staging_alloc_info, &staging_buffer, &staging_alloc, nullptr))
 
@@ -310,7 +314,9 @@ private:
 
         VmaAllocationCreateInfo alloc_info = {};
         alloc_info.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+        alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
+        std::cout << "timewarp index actual buffer" << std::endl;
         VmaAllocation index_alloc;
         VK_ASSERT_SUCCESS(vmaCreateBuffer(vma_allocator, &buffer_info, &alloc_info, &index_buffer, &index_alloc, nullptr))
 
@@ -429,14 +435,15 @@ private:
 
         VmaAllocationCreateInfo createInfo = {};
         createInfo.usage                   = VMA_MEMORY_USAGE_AUTO;
-        createInfo.flags         = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        createInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        createInfo.flags         = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
+        std::cout << "timewarp uniform buffer" << std::endl;
         VK_ASSERT_SUCCESS(
             vmaCreateBuffer(vma_allocator, &bufferInfo, &createInfo, &uniform_buffer, &uniform_alloc, &uniform_alloc_info))
         deletion_queue.emplace([=]() {
             vmaDestroyBuffer(vma_allocator, uniform_buffer, uniform_alloc);
         });
+        std::cout << "timewarp uniform buffer done" << std::endl;
     }
 
     void create_descriptor_pool() {
