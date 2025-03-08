@@ -145,6 +145,7 @@ public:
         };
 
         VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &timewarp_submit_info, frame_fence))
+        // std::cout << "MTP: " << duration2double<std::milli>(_m_clock->now() - fast_pose.pose.sensor_time) << std::endl;
 
         if (frame_count % 200 == 0) {
 
@@ -237,7 +238,7 @@ public:
                 snprintf(&result[0], size, format, args...);
                 return result;
             };
-            std::string fname = formatted("/home/eecs/prashanthcganesh108/ILLIXR/build/saved_frames/%d.ppm", frame_count);
+            std::string fname = formatted("/scratch/prashanth/ILLIXR-headless-vulkan/build/saved_frames/%d.ppm", frame_count);
             const char* filename = fname.c_str();
 
             std::ofstream file(filename, std::ofstream::binary);

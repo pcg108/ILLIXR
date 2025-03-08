@@ -19,6 +19,7 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
+#include <iostream>
 
 using namespace ILLIXR;
 
@@ -75,6 +76,7 @@ public:
                            RAC_ERRNO_MSG("runtime_impl before building the plugin");
                            return std::unique_ptr<plugin>{plugin_factory(&pb)};
                        });
+
 
         std::for_each(plugins.cbegin(), plugins.cend(), [](const auto& plugin) {
             // Well-behaved plugins (any derived from threadloop) start there threads here, and then wait on the Stoplight.

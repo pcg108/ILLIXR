@@ -488,8 +488,8 @@ private:
 
         VmaAllocationCreateInfo image_alloc_info{};
         image_alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-        image_alloc_info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-        image_alloc_info.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        image_alloc_info.usage = VMA_MEMORY_USAGE_AUTO; // VMA_MEMORY_USAGE_CPU_ONLY;
+        // image_alloc_info.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
         VK_ASSERT_SUCCESS(vmaCreateImage(vma_allocator, &image_info, &image_alloc_info, &textures[i].image,
                                          &textures[i].image_memory, nullptr))
