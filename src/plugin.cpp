@@ -108,17 +108,17 @@ int ILLIXR::run(const cxxopts::ParseResult& options) {
     RAC_ERRNO_MSG("main before loading dynamic libraries");
     r->load_so(lib_paths);
 
-    cancellable_sleep cs;
-    std::thread       th{[&] {
-        cs.sleep(run_duration);
-        r->stop();
-    }};
+    // cancellable_sleep cs;
+    // std::thread       th{[&] {
+    //     cs.sleep(run_duration);
+    //     r->stop();
+    // }};
 
     r->wait(); // blocks until shutdown is r->stop()
 
     // cancel our sleep, so we can join the other thread
-    cs.cancel();
-    th.join();
+    // cs.cancel();
+    // th.join();
 
     delete r;
     return 0;

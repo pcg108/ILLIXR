@@ -119,3 +119,13 @@ profile:
   enable_alignment: false
   enable_verbose_errors: false
   enable_pre_sleep: false
+
+profile:
+  name: gpu_offload
+  plugins: headless_vk,headless_timewarp_vk,headless_vkdemo,headless_native_renderer
+  build_flags: -DILLIXR_VULKAN
+  build_type: Release
+  enable_offload: false
+  enable_alignment: false
+  enable_verbose_errors: false
+  enable_pre_sleep: false

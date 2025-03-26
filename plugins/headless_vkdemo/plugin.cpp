@@ -132,7 +132,7 @@ public:
         create_pipeline(render_pass, subpass);
     }
 
-    void update_uniforms(const pose_type& fp) override {
+    void update_uniforms(const pose_type& fp, const pose_type&  _) override {
         update_uniform(fp, 0);
         update_uniform(fp, 1);
     }
@@ -928,7 +928,7 @@ private:
     }
 
     const std::shared_ptr<switchboard>         sb;
-    const std::shared_ptr<pose_prediction>     pp;
+    // const std::shared_ptr<pose_prediction>     pp;
     const std::shared_ptr<headless_sink>       hs = nullptr;
     const std::shared_ptr<const RelativeClock> _m_clock;
 

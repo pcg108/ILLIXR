@@ -5,6 +5,13 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <ctime>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/mman.h>
+#include <poll.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <vulkan/vulkan_core.h>
 
 #define VMA_IMPLEMENTATION
@@ -21,12 +28,16 @@
 
 using namespace ILLIXR;
 
+const char* SOCKET_PATH = "/tmp/illixr-host";
+const int BUFFER_SIZE = 1024;
+const int MAX_CLIENTS = 10;
+
 class native_renderer : public threadloop {
 public:
     native_renderer(const std::string& name_, phonebook* pb)
         : threadloop{name_, pb}
         , sb{pb->lookup_impl<switchboard>()}
-        , pp{pb->lookup_impl<pose_prediction>()}
+        // , pp{pb->lookup_impl<pose_prediction>()}
         , hs{pb->lookup_impl<headless_sink>()}
         , tw{pb->lookup_impl<timewarp>()}
         , src{pb->lookup_impl<app>()}
@@ -54,6 +65,7 @@ public:
         app_command_buffer      = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
         timewarp_command_buffer = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
         create_sync_objects();
+        create_query_pool();
         create_app_pass();
         create_timewarp_pass();
         create_sync_objects();
@@ -61,6 +73,55 @@ public:
         create_framebuffer();
         src->setup(app_pass, 0);
         tw->setup(timewarp_pass, 0, {std::vector{offscreen_image_views[0]}, std::vector{offscreen_image_views[1]}}, true);
+
+
+        // open a socket server for the bridge driver
+        struct sockaddr_un addr;
+
+        // Create and configure server socket
+        if ((server_fd = socket(AF_UNIX, SOCK_SEQPACKET, 0)) < 0) {
+            std::cout << "[ILLIXR host server] Error creating server" << std::endl;
+            perror("socket");
+        }
+
+        // Remove existing socket file
+        unlink(SOCKET_PATH);
+
+        // Bind socket
+        memset(&addr, 0, sizeof(addr));
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
+
+        if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+            std::cout << "[ILLIXR host server] Error binding server" << std::endl;
+            perror("bind");
+            close(server_fd);
+        }
+
+        // Listen for connections
+        if (listen(server_fd, MAX_CLIENTS) < 0) {
+            std::cout << "[ILLIXR host server] Error listening for connections" << std::endl;
+            perror("listen");
+            close(server_fd);
+        }
+
+        // Add server socket to poll list
+        struct pollfd server_pollfd;
+        server_pollfd.fd = server_fd;
+        server_pollfd.events = POLLIN;
+        fds.push_back(server_pollfd);
+
+        std::cout << "[ILLIXR host server] ILLIXR server listening on: " << SOCKET_PATH << std::endl;
+
+        xdma_h2cfd = open("/dev/xdma0_h2c_0", O_WRONLY);
+        xdma_c2hfd = open("/dev/xdma0_c2h_0", O_RDONLY);
+
+        if (xdma_h2cfd < 0 || xdma_c2hfd < 0) {
+            std::cout << "[ILLIXR host server] Error opening XDMA" << std::endl;
+        } else {
+            std::cout << "[ILLIXR host server] Opened XDMA" << std::endl;
+        }
+
     }
 
     /**
@@ -74,221 +135,169 @@ public:
      */
     void _p_one_iteration() override {
 
-        // Wait for the previous frame to finish rendering
-        VK_ASSERT_SUCCESS(vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
+        // Wait for events with 1 second timeout
+        int num_ready = poll(fds.data(), fds.size(), 100);
+        
+        if (num_ready < 0) {
+            perror("poll");
+            return;
+        }
 
-        VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
+        if (num_ready != 0) {
 
-        // Get the current fast pose and update the uniforms
-        auto fast_pose = pp->get_fast_pose();
-        src->update_uniforms(fast_pose.pose);
+            // Check all file descriptors
+            for (size_t i = 0; i < fds.size(); ++i) {
 
-        // Record the command buffer
-        VK_ASSERT_SUCCESS(vkResetCommandBuffer(app_command_buffer, 0))
-        record_command_buffer();
+                if (fds[i].revents == 0)
+                    continue;
 
-        // Submit the command buffer to the graphics queue
-        const uint64_t ignored     = 0;
-        const uint64_t fired_value = timeline_semaphore_value + 1;
+                // Handle server socket (new connections)
+                if (fds[i].fd == server_fd) {
+                    if (fds[i].revents & POLLIN) {
+                        // Accept new connection
+                        int client_fd = accept(server_fd, NULL, NULL);
+                        if (client_fd < 0) {
+                            perror("accept");
+                            continue;
+                        }
 
-        timeline_semaphore_value += 1;
-        VkTimelineSemaphoreSubmitInfo timeline_submit_info{
-            VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO, // sType
-            nullptr,                                          // pNext
-            0,                                                // waitSemaphoreValueCount
-            &ignored,                                         // pWaitSemaphoreValues
-            1,                                                // signalSemaphoreValueCount
-            &fired_value                                      // pSignalSemaphoreValues
-        };
-
-        VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        VkSubmitInfo         submit_info{
-            VK_STRUCTURE_TYPE_SUBMIT_INFO, // sType
-            &timeline_submit_info,         // pNext
-            0,                             // waitSemaphoreCount
-            nullptr,                    // pWaitSemaphores
-            nullptr,                   // pWaitDstStageMask
-            1,                             // commandBufferCount
-            &app_command_buffer,           // pCommandBuffers
-            1,                             // signalSemaphoreCount
-            &app_render_finished_semaphore // pSignalSemaphores
-        };
-
-        VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &submit_info, nullptr))
-
-        // Wait for the application to finish rendering
-        VkSemaphoreWaitInfo wait_info{
-            VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO, // sType
-            nullptr,                               // pNext
-            0,                                     // flags
-            1,                                     // semaphoreCount
-            &app_render_finished_semaphore,        // pSemaphores
-            &fired_value                           // pValues
-        };
-        VK_ASSERT_SUCCESS(vkWaitSemaphores(hs->vk_device, &wait_info, UINT64_MAX))
-
-        // TODO: for DRM, get vsync estimate
-        std::this_thread::sleep_for(display_params::period / 6.0 * 5);
-
-        // Update the timewarp uniforms and submit the timewarp command buffer to the graphics queue
-        tw->update_uniforms(fast_pose.pose);
-        VkSubmitInfo timewarp_submit_info{
-            VK_STRUCTURE_TYPE_SUBMIT_INFO,      // sType
-            nullptr,                            // pNext
-            0,                                  // waitSemaphoreCount
-            nullptr,                            // pWaitSemaphores
-            nullptr,                            // pWaitDstStageMask
-            1,                                  // commandBufferCount
-            &timewarp_command_buffer,           // pCommandBuffers
-            0,                                  // signalSemaphoreCount
-            nullptr                              // pSignalSemaphores
-        };
-
-        VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &timewarp_submit_info, frame_fence))
-
-        std::cout << "frame: " << frame_count << std::endl;
-
-        if (frame_count % 200 == 0) {
-
-            // wait sfor frame to finish rendering
-            vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX);
-
-            // create image in host memory 
-            VkImage dstImage;
-
-            VkImageCreateInfo imageInfo{};
-            imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-            imageInfo.imageType = VK_IMAGE_TYPE_2D;
-            imageInfo.extent.width = hs->extent.width;
-            imageInfo.extent.height = hs->extent.height;
-            imageInfo.extent.depth = 1;
-            imageInfo.mipLevels = 1;
-            imageInfo.arrayLayers = 1;
-            imageInfo.format = hs->image_format;
-            imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
-            imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-            imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-            if (vkCreateImage(hs->vk_device, &imageInfo, nullptr, &dstImage) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create destination image!");
-            }
-            
-            VkDeviceMemory dstImageMemory;
-
-            VkMemoryRequirements memRequirements;
-            vkGetImageMemoryRequirements(hs->vk_device, dstImage, &memRequirements);
-            
-            VkMemoryAllocateInfo allocInfo{};
-            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            allocInfo.allocationSize = memRequirements.size;
-            allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            
-            if (vkAllocateMemory(hs->vk_device, &allocInfo, nullptr, &dstImageMemory) != VK_SUCCESS) {
-                throw std::runtime_error("failed to allocate image memory!");
-            }
-            vkBindImageMemory(hs->vk_device, dstImage, dstImageMemory, 0);
-
-            // transition dstImage to optimal layout for recieving the image
-            transitionImageLayout(dstImage, hs->image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-            // copy image
-            VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-            VkImageCopy imageCopyRegion{};
-            imageCopyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageCopyRegion.srcSubresource.layerCount = 1;
-            imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageCopyRegion.dstSubresource.layerCount = 1;
-            imageCopyRegion.extent.width = hs->extent.width;
-            imageCopyRegion.extent.height = hs->extent.height;
-            imageCopyRegion.extent.depth = 1;
-            
-            vkCmdCopyImage(
-                           commandBuffer,
-                           hs->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                           dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           1,
-                           &imageCopyRegion);
-            
-            // submit command buffer
-            endSingleTimeCommands(commandBuffer, copy_frame_fence);
-
-            // wait for copy to complete
-            vkWaitForFences(hs->vk_device, 1, &copy_frame_fence, VK_TRUE, UINT64_MAX);
-            
-            // transition image to general layout to write to file later
-            transitionImageLayout(dstImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
-
-            // Get layout of the image (including row pitch)
-            VkImageSubresource subResource{};
-            subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            VkSubresourceLayout subResourceLayout;
-            vkGetImageSubresourceLayout(hs->vk_device, dstImage, &subResource, &subResourceLayout);
-            
-            // Map image memory to a pointer so we can start copying from it
-            const char* imagedata;
-            vkMapMemory(hs->vk_device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&imagedata);
-            imagedata += subResourceLayout.offset;
-
-            // filename lol
-            auto formatted = [](const char* format, auto... args) {
-                size_t size = snprintf(nullptr, 0, format, args...) + 1;
-                std::string result(size, '\0');
-                snprintf(&result[0], size, format, args...);
-                return result;
-            };
-            std::string fname = formatted("/home/eecs/prashanthcganesh108/ILLIXR/build/saved_frames/%d.ppm", frame_count);
-            const char* filename = fname.c_str();
-
-            std::ofstream file(filename, std::ofstream::binary);
-            // ppm header
-            file << "P6\n" << hs->extent.width << "\n" << hs->extent.height << "\n" << 255 << "\n";
-
-            
-            for (int32_t y = 0; y < hs->extent.height; y++) {
-                unsigned int *row = (unsigned int*)imagedata;
-                for (int32_t x = 0; x < hs->extent.width; x++) {
-                    
-                    // swizzle colors because format is VK_FORMAT_B8G8R8A8_SRGB, so switch BGR to RGB
-                    file.write((char*)row+2, 1);
-                    file.write((char*)row+1, 1);
-                    file.write((char*)row, 1);
-                    row++;
+                        // Check if we have room for more clients
+                        if (fds.size() > MAX_CLIENTS + 1) { // +1 for server socket
+                            // std::cout << "[guest2bridge] Max clients reached. Rejecting connection." << std::endl;
+                            close(client_fd);
+                        } else {
+                            // Add new client to poll list
+                            struct pollfd client_pollfd;
+                            client_pollfd.fd = client_fd;
+                            client_pollfd.events = POLLIN;
+                            fds.push_back(client_pollfd);
+                            std::cout << "[ILLIXR host server] New client connected (" << client_fd << ")" << std::endl;
+                        }
+                    }
                 }
-                imagedata += subResourceLayout.rowPitch;
+                // Handle client socket (data)
+                else {
+                    if (fds[i].revents & (POLLIN | POLLHUP)) {
+                        // Read data from guest
+                        ssize_t bytes_read = recv(fds[i].fd, socket_buffer, BUFFER_SIZE, 0);
+                        
+                        if (bytes_read <= 0) {
+                            // Connection closed or error
+                            close(fds[i].fd);
+                            fds.erase(fds.begin() + i);
+                            --i;
+                        } else {
+
+                            float socket_floats[15];
+                            std::memcpy(socket_floats, socket_buffer, bytes_read);
+
+                            std::cout << "[ILLIXR host server] Received from bridge: ";
+                            for (size_t i = 0; i < 8; ++i) {
+                                std::cout << socket_floats[i] << " ";
+                            }
+                            std::cout << std::endl;
+
+                            int queue_id = socket_floats[0];
+
+                            auto t = time_point();
+                            Eigen::Vector3f v(socket_floats[1], socket_floats[2], socket_floats[3]);
+                            Eigen::Quaternionf q(socket_floats[4], socket_floats[5], socket_floats[6], socket_floats[7]);
+                            pose_type latest_pose = pose_type(t, v, q);
+
+                            double time_taken = 0;   
+                            double bytes_written = 0;                         
+
+                            if (queue_id == 0) {
+
+                                // if we are rendering, use this pose and save it for the timewarp
+                                render_pose = latest_pose;
+
+                                // Get the current fast pose and update the uniforms
+                                src->update_uniforms(render_pose, render_pose);
+
+                                // Record the command buffer
+                                VK_ASSERT_SUCCESS(vkResetCommandBuffer(app_command_buffer, 0))
+                                record_app_command_buffer();
+
+                                // Submit the command buffer to the graphics queue
+
+                                VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+                                VkSubmitInfo         application_submit_info{
+                                    VK_STRUCTURE_TYPE_SUBMIT_INFO, // sType
+                                    nullptr,                        // pNext
+                                    0,                             // waitSemaphoreCount
+                                    nullptr,                    // pWaitSemaphores
+                                    nullptr,                   // pWaitDstStageMask
+                                    1,                             // commandBufferCount
+                                    &app_command_buffer,           // pCommandBuffers
+                                    0,                             // signalSemaphoreCount
+                                    &app_render_finished_semaphore // pSignalSemaphores
+                                };
+
+                                VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &application_submit_info, frame_fence))
+                                VK_ASSERT_SUCCESS(vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
+
+                                time_taken = get_timestamp(appQueryPool);
+
+                            } else {
+
+                                // timewarp will use the pose from render along with the latest pose
+                                tw->update_uniforms(render_pose, latest_pose);
+
+                                // Record the command buffer
+                                VK_ASSERT_SUCCESS(vkResetCommandBuffer(timewarp_command_buffer, 0))
+                                record_tw_command_buffer();
+
+                                VkSubmitInfo timewarp_submit_info{
+                                    VK_STRUCTURE_TYPE_SUBMIT_INFO,      // sType
+                                    nullptr,                            // pNext
+                                    0,                                  // waitSemaphoreCount
+                                    nullptr,                            // pWaitSemaphores
+                                    nullptr,                            // pWaitDstStageMask
+                                    1,                                  // commandBufferCount
+                                    &timewarp_command_buffer,           // pCommandBuffers
+                                    0,                                  // signalSemaphoreCount
+                                    nullptr                              // pSignalSemaphores
+                                };
+
+                                VK_ASSERT_SUCCESS(vkQueueSubmit(hs->graphics_queue, 1, &timewarp_submit_info, frame_fence))
+                                VK_ASSERT_SUCCESS(vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
+
+                                time_taken = get_timestamp(twQueryPool);
+
+                                bytes_written = save_frame();
+
+                            }
+
+                            std::cout << "time: " << time_taken / 1e6 << std::endl;
+                            uint8_t buffer[sizeof(double) * 2];
+                            std::memcpy(buffer, &time_taken, sizeof(double));
+                            std::memcpy(buffer + sizeof(double), &bytes_written, sizeof(double));
+
+                            if (send(fds[i].fd, buffer, sizeof(double) * 2, 0) < 0) {
+                                std::cout << "[ILLIXR host server] Error responding to bridge driver" << std::endl;
+                            }
+                            
+
+                            VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
+
+                        }
+                    }
+                }
             }
-            file.close();
-
-
-            std::cout << "saved " << fname.c_str() << std::endl;
-            
-            // reset fence for copy operation
-            vkResetFences(hs->vk_device, 1, &copy_frame_fence);
-            
-            // unmap and free memory
-            vkUnmapMemory(hs->vk_device, dstImageMemory);
-            vkFreeMemory(hs->vk_device, dstImageMemory, nullptr);
-            vkDestroyImage(hs->vk_device, dstImage, nullptr);
 
         }
+        
 
-        frame_count++;
-
-        // #ifndef NDEBUG
-        // Print the FPS
-        if (_m_clock->now() - last_fps_update > std::chrono::milliseconds(1000)) {
-            // std::cout << "FPS: " << fps << std::endl;
-            fps             = 0;
-            last_fps_update = _m_clock->now();
-        } else {
-            fps++;
-        }
-        // #endif
     }
 
 private:
+
+    double get_timestamp(VkQueryPool qp) {
+        uint64_t timestamps[2] = {};
+        vkGetQueryPoolResults(hs->vk_device, qp, 0, 2, sizeof(timestamps), timestamps, sizeof(uint64_t), VK_QUERY_RESULT_WAIT_BIT);
+        return (timestamps[1] - timestamps[0]) * timestampPeriod;
+    }
 
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -406,11 +415,8 @@ private:
         
     }
 
-    /**
-     * @brief Records the command buffer for a single frame.
-     * 
-     */
-    void record_command_buffer() {
+    void record_app_command_buffer() {
+
         // Begin recording app command buffer
         VkCommandBufferBeginInfo begin_info = {
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, // sType
@@ -419,6 +425,9 @@ private:
             nullptr                                      // pInheritanceInfo
         };
         VK_ASSERT_SUCCESS(vkBeginCommandBuffer(app_command_buffer, &begin_info))
+
+        vkCmdResetQueryPool(app_command_buffer, appQueryPool, 0, 2); 
+        vkCmdWriteTimestamp(app_command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, appQueryPool, 0);
 
         for (auto eye = 0; eye < 2; eye++) {
             assert(app_pass != VK_NULL_HANDLE);
@@ -440,11 +449,20 @@ private:
             };
 
             vkCmdBeginRenderPass(app_command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
             // Call app service to record the command buffer
             src->record_command_buffer(app_command_buffer, eye);
+
             vkCmdEndRenderPass(app_command_buffer);
         }
+
+        vkCmdWriteTimestamp(app_command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, appQueryPool, 1);
+
         VK_ASSERT_SUCCESS(vkEndCommandBuffer(app_command_buffer))
+
+    }
+
+    void record_tw_command_buffer() {
 
         // Begin recording timewarp command buffer
         VkCommandBufferBeginInfo timewarp_begin_info = {
@@ -454,6 +472,10 @@ private:
             nullptr                                      // pInheritanceInfo
         };
         VK_ASSERT_SUCCESS(vkBeginCommandBuffer(timewarp_command_buffer, &timewarp_begin_info)) {
+
+            vkCmdResetQueryPool(timewarp_command_buffer, twQueryPool, 0, 2); 
+            vkCmdWriteTimestamp(timewarp_command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, twQueryPool, 0);
+
             assert(timewarp_pass != VK_NULL_HANDLE);
             VkClearValue          clear_value{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}};
             VkRenderPassBeginInfo render_pass_info{
@@ -491,9 +513,177 @@ private:
                 // Call timewarp service to record the command buffer
                 tw->record_command_buffer(timewarp_command_buffer, 0, eye == 0);
             }
+
             vkCmdEndRenderPass(timewarp_command_buffer);
+
+            vkCmdWriteTimestamp(timewarp_command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, twQueryPool, 1);
         }
         VK_ASSERT_SUCCESS(vkEndCommandBuffer(timewarp_command_buffer))
+
+    }
+
+    /**
+     * @brief Records the command buffers for a single frame.
+     * 
+     */
+
+    void record_command_buffer() {
+
+
+        
+    }
+
+
+    int save_frame() {
+
+        // create image in host memory 
+        VkImage dstImage;
+
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = hs->extent.width;
+        imageInfo.extent.height = hs->extent.height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = hs->image_format;
+        imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+        if (vkCreateImage(hs->vk_device, &imageInfo, nullptr, &dstImage) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create destination image!");
+        }
+        
+        VkDeviceMemory dstImageMemory;
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(hs->vk_device, dstImage, &memRequirements);
+        
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        
+        if (vkAllocateMemory(hs->vk_device, &allocInfo, nullptr, &dstImageMemory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate image memory!");
+        }
+        vkBindImageMemory(hs->vk_device, dstImage, dstImageMemory, 0);
+
+        // transition dstImage to optimal layout for recieving the image
+        transitionImageLayout(dstImage, hs->image_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+        // copy image
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+        VkImageCopy imageCopyRegion{};
+        imageCopyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageCopyRegion.srcSubresource.layerCount = 1;
+        imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageCopyRegion.dstSubresource.layerCount = 1;
+        imageCopyRegion.extent.width = hs->extent.width;
+        imageCopyRegion.extent.height = hs->extent.height;
+        imageCopyRegion.extent.depth = 1;
+        
+        vkCmdCopyImage(
+                       commandBuffer,
+                       hs->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       1,
+                       &imageCopyRegion);
+        
+        // submit command buffer
+        endSingleTimeCommands(commandBuffer, copy_frame_fence);
+
+        // wait for copy to complete
+        vkWaitForFences(hs->vk_device, 1, &copy_frame_fence, VK_TRUE, UINT64_MAX);
+        
+        // transition image to general layout to write to file later
+        transitionImageLayout(dstImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+
+        // Get layout of the image (including row pitch)
+        VkImageSubresource subResource{};
+        subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        VkSubresourceLayout subResourceLayout;
+        vkGetImageSubresourceLayout(hs->vk_device, dstImage, &subResource, &subResourceLayout);
+        
+        // Map image memory to a pointer so we can start copying from it
+        const char* imagedata;
+        vkMapMemory(hs->vk_device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&imagedata);
+        imagedata += subResourceLayout.offset;
+
+        // write the image data to XDMA
+        int rc = pwrite(xdma_h2cfd, imagedata, hs->extent.height * hs->extent.width, target_dram_addr);
+        if (rc < 0) {
+            std::cout << "[ILLIXR host server] error writing " << rc << " bytes to XDMA" << std::endl;
+        } else {
+            std::cout << "[ILLIXR host server] wrote " << rc << " bytes to XDMA" << std::endl;
+        }
+
+        // filename lol
+        auto formatted = [](const char* format, auto... args) {
+            size_t size = snprintf(nullptr, 0, format, args...) + 1;
+            std::string result(size, '\0');
+            snprintf(&result[0], size, format, args...);
+            return result;
+        };
+        std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%d.ppm", frame_count);
+        const char* filename = fname.c_str();
+
+        std::ofstream file(filename, std::ofstream::binary);
+        // ppm header
+        file << "P6\n" << hs->extent.width << "\n" << hs->extent.height << "\n" << 255 << "\n";
+
+        
+        for (int32_t y = 0; y < hs->extent.height; y++) {
+            unsigned int *row = (unsigned int*)imagedata;
+            for (int32_t x = 0; x < hs->extent.width; x++) {
+                
+                // swizzle colors because format is VK_FORMAT_B8G8R8A8_SRGB, so switch BGR to RGB
+                file.write((char*)row+2, 1);
+                file.write((char*)row+1, 1);
+                file.write((char*)row, 1);
+                row++;
+            }
+            imagedata += subResourceLayout.rowPitch;
+        }
+        file.close();
+
+
+        std::cout << "[ILLIXR host server] saved " << fname.c_str() << std::endl;
+        
+        // reset fence for copy operation
+        vkResetFences(hs->vk_device, 1, &copy_frame_fence);
+        
+        // unmap and free memory
+        vkUnmapMemory(hs->vk_device, dstImageMemory);
+        vkFreeMemory(hs->vk_device, dstImageMemory, nullptr);
+        vkDestroyImage(hs->vk_device, dstImage, nullptr);
+
+        frame_count += 1;
+
+        return rc;
+    }
+
+    void create_query_pool() {
+
+        VkQueryPoolCreateInfo queryPoolCreateInfo = {};
+        queryPoolCreateInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+        queryPoolCreateInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+        queryPoolCreateInfo.queryCount = 2;
+
+        VK_ASSERT_SUCCESS(vkCreateQueryPool(hs->vk_device, &queryPoolCreateInfo, nullptr, &appQueryPool)) 
+        VK_ASSERT_SUCCESS(vkCreateQueryPool(hs->vk_device, &queryPoolCreateInfo, nullptr, &twQueryPool)) 
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(hs->vk_physical_device, &deviceProperties);
+
+        // The timestampPeriod is given in nanoseconds per timestamp unit.
+        timestampPeriod = deviceProperties.limits.timestampPeriod;
+        std::cout << "Timestamp period: " << timestampPeriod << " ns" << std::endl;
     }
 
     /**
@@ -821,7 +1011,7 @@ private:
     }
 
     const std::shared_ptr<switchboard>         sb;
-    const std::shared_ptr<pose_prediction>     pp;
+    // const std::shared_ptr<pose_prediction>     pp;
     const std::shared_ptr<headless_sink>       hs;
     const std::shared_ptr<timewarp>            tw;
     const std::shared_ptr<app>                 src;
@@ -845,6 +1035,9 @@ private:
     VkRenderPass app_pass{};
     VkRenderPass timewarp_pass{};
 
+    VkQueryPool appQueryPool;
+    VkQueryPool twQueryPool;
+
     VkSemaphore image_available_semaphore{};
     VkSemaphore app_render_finished_semaphore{};
     VkSemaphore timewarp_render_finished_semaphore{};
@@ -857,5 +1050,16 @@ private:
     time_point last_fps_update;
 
     int frame_count = 0;
+
+    int server_fd;
+    std::vector<struct pollfd> fds;
+    uint8_t socket_buffer[BUFFER_SIZE];
+
+    float timestampPeriod;
+    pose_type render_pose;
+
+    int xdma_h2cfd;
+    int xdma_c2hfd;
+    unsigned long long target_dram_addr = (0x88000000 + 0x380000000) % 0x400000000;
 };
 PLUGIN_MAIN(native_renderer)

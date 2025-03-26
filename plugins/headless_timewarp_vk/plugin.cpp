@@ -78,7 +78,7 @@ public:
     explicit timewarp_vk(const phonebook* const pb)
         : pb{pb}
         , sb{pb->lookup_impl<switchboard>()}
-        , pp{pb->lookup_impl<pose_prediction>()}
+        // , pp{pb->lookup_impl<pose_prediction>()}
         , disable_warp{ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_TIMEWARP_DISABLE", "False"))} { }
 
     void initialize() {
@@ -139,7 +139,7 @@ public:
         descriptor_pool = VK_NULL_HANDLE;
     }
 
-    void update_uniforms(const pose_type& render_pose) override {
+    void update_uniforms(const pose_type& render_pose, const pose_type& latest_pose) override {
         num_update_uniforms_calls++;
 
         // Generate "starting" view matrix, from the pose sampled at the time of rendering the frame
@@ -154,7 +154,7 @@ public:
         Eigen::Matrix4f viewMatrixBegin = Eigen::Matrix4f::Identity();
         Eigen::Matrix4f viewMatrixEnd   = Eigen::Matrix4f::Identity();
 
-        const pose_type latest_pose       = disable_warp ? render_pose : pp->get_fast_pose().pose;
+        // const pose_type latest_pose       = disable_warp ? render_pose : pp->get_fast_pose().pose;
         viewMatrixBegin.block(0, 0, 3, 3) = latest_pose.orientation.toRotationMatrix();
 
         // TODO: We set the "end" pose to the same as the beginning pose, but this really should be the pose for
@@ -755,7 +755,7 @@ private:
 
     const phonebook* const                 pb;
     const std::shared_ptr<switchboard>     sb;
-    const std::shared_ptr<pose_prediction> pp;
+    // const std::shared_ptr<pose_prediction> pp;
     bool                                   disable_warp = false;
     std::shared_ptr<headless_sink>          hs           = nullptr;
     std::mutex                             m_setup;
