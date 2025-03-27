@@ -51,14 +51,17 @@ public:
      */
     void _p_thread_setup() override {
 
+        std::cout << "[illixr target] mapping MMIO" << std::endl;
         int mem_fd;
         mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
         ptr = (intptr_t) mmap(NULL, 16, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0x4000);
       
+        std::cout << "[illixr target] mapping DMA" << std::endl;
         int mem_fd2;
         mem_fd2 = open("/dev/mem", O_RDWR | O_SYNC);
         dma_ptr = (intptr_t) mmap(NULL, 50000000, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd2, 0x88000000);
 
+        std::cout << "[illixr target] finished mapping" << std::endl;
     }
 
     /**
@@ -66,8 +69,12 @@ public:
      */
     void _p_one_iteration() override {
 
+        std::cout << "[illixr target] one iteration" << std::endl;
+
         // offload render 
         auto render_pose = pp->get_fast_pose().pose;
+
+        std::cout << "[illixr target] pose: " << render_pose.position.x() << " " << render_pose.position.y() << " " << render_pose.position.z() << std::endl;
 
         tx_packets[0] = make_start_packet(0, 7, 0);
         make_pose_packets(tx_packets, render_pose);
