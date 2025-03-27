@@ -17,7 +17,7 @@ with open(POSE_FILE, newline='') as csvfile:
         float_values = [float(value) for value in row]
 
         if (i%10==0):
-            float_values = [float(0)] + float_values
+            float_values = [float(0), float(0)] + float_values
             data = struct.pack('8f', *float_values)
             sample_conn.sendall(data)
 
@@ -28,7 +28,7 @@ with open(POSE_FILE, newline='') as csvfile:
             time.sleep(5)
 
         if (i%10==1):
-            float_values = [float(1)] + float_values
+            float_values = [float(1), float(0)] + float_values
             data = struct.pack('8f', *float_values)
             sample_conn.sendall(data)
 

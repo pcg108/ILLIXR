@@ -198,10 +198,11 @@ public:
                             std::cout << std::endl;
 
                             int queue_id = socket_floats[0];
+                            int dma_read = socket_floats[1]
 
                             auto t = time_point();
-                            Eigen::Vector3f v(socket_floats[1], socket_floats[2], socket_floats[3]);
-                            Eigen::Quaternionf q(socket_floats[4], socket_floats[5], socket_floats[6], socket_floats[7]);
+                            Eigen::Vector3f v(socket_floats[2], socket_floats[3], socket_floats[4]);
+                            Eigen::Quaternionf q(socket_floats[5], socket_floats[6], socket_floats[7], socket_floats[8]);
                             pose_type latest_pose = pose_type(t, v, q);
 
                             double time_taken = 0;   
