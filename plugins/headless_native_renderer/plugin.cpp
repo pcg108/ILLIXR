@@ -121,7 +121,7 @@ private:
         return start_stream;
     }
 
-    uint32_t make_pose_packets(uint32_t* packets, pose_type pose) {
+    void make_pose_packets(uint32_t* packets, pose_type pose) {
         packets[1] = (uint32_t) pose.position.x();
         packets[2] = (uint32_t) pose.position.y();
         packets[3] = (uint32_t) pose.position.z();
