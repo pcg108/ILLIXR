@@ -69,19 +69,15 @@ public:
      */
     void _p_one_iteration() override {
 
-        std::cout << "[illixr target] one iteration" << std::endl;
 
         // offload render 
         auto render_pose = pp->get_fast_pose().pose;
-
-        std::cout << "[illixr target] pose: " << render_pose.position.x() << " " << render_pose.position.y() << " " << render_pose.position.z() << std::endl;
 
         tx_packets[0] = make_start_packet(0, 7, 0);
         make_pose_packets(tx_packets, render_pose);
 
         // send to bridge
         // bridge will pause target execution while render is occurring
-        std::cout << "[illixr guest] sending render pose to bridge" << std::endl;
         send_packets(tx_packets, 8);
 
         // get the amount of time to stall from the bridge
@@ -98,7 +94,6 @@ public:
         tx_packets[0] = make_start_packet(1, 7, 0);
         make_pose_packets(tx_packets, timewarp_pose);
 
-        std::cout << "[illixr guest] sending timewarp pose to bridge" << std::endl;
         send_packets(tx_packets, 8);
 
         delay_ns = read_delay_time();
@@ -138,9 +133,9 @@ private:
     }
 
     void send_packets(uint32_t* packets, int len) {
-        std::cout << "[illixr guest] sending packets: " << std::endl;;
+        // std::cout << "[illixr guest] sending packets: " << std::endl;;
         for (int i = 0; i < len; i++) {
-            std::cout << "   " << packets[i] << std::endl;
+            // std::cout << "   " << packets[i] << std::endl;
             while ((reg_read8(GRAPHICS_STATUS) & 0x2) == 0) ;
             reg_write32(GRAPHICS_IN, packets[i]);
         }
