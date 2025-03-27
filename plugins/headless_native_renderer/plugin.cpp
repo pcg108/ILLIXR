@@ -33,11 +33,11 @@ using namespace ILLIXR;
 
 const record_header mtp_record{"mtp_record",
     {
-        {"render pose (c)", typeid(std::uint32_t)},
-        {"render (c)", typeid(std::uint32_t)},
-        {"tw pose (c)", typeid(std::uint32_t)},
-        {"timewarp (c)", typeid(std::uint32_t)},
-        {"MTP", typeid(typeid(std::chrono::nanoseconds))},
+        {"render pose (c)", typeid(std::size_t)},
+        {"render (c)", typeid(std::size_t)},
+        {"tw pose (c)", typeid(std::size_t)},
+        {"timewarp (c)", typeid(std::size_t)},
+        {"MTP", typeid(std::chrono::nanoseconds)},
     }};
 
 class native_renderer : public threadloop {
