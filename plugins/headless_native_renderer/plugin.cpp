@@ -69,6 +69,7 @@ public:
      */
     void _p_one_iteration() override {
 
+        uint64_t start_cycle = rdcycle();
 
         // offload render 
         auto render_pose = pp->get_fast_pose().pose;
@@ -87,7 +88,6 @@ public:
         std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
 
-
         // offload timewarp 
         auto timewarp_pose = pp->get_fast_pose().pose;
 
@@ -99,6 +99,10 @@ public:
         delay_ns = read_delay_time();
         std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+
+        uint64_t end_cycle = rdcycle();
+
+        std::cout << "[illixr guest] cycles: " << end_cycle - start_cycle << std::endl;
 
     }
 
@@ -141,6 +145,12 @@ private:
         }
         
         return;
+    }
+
+    static inline uint64_t rdcycle() {
+        uint64_t cycles;
+        asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
+        return cycles;
     }
 
     
