@@ -28,6 +28,11 @@
 
 using namespace ILLIXR;
 
+const record_header mtp_record{"mtp_record",
+    {
+        {"time_taken", typeid(std::size_t)},
+    }};
+
 const char* SOCKET_PATH = "/tmp/illixr-host";
 const int BUFFER_SIZE = 1024;
 const int MAX_CLIENTS = 10;
@@ -42,7 +47,8 @@ public:
         , tw{pb->lookup_impl<timewarp>()}
         , src{pb->lookup_impl<app>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
-        , last_fps_update{std::chrono::duration<long, std::nano>{0}} {
+        , last_fps_update{std::chrono::duration<long, std::nano>{0}}
+        , mtp_logger{record_logger_} {
         spdlogger(std::getenv("NATIVE_RENDERER_LOG_LEVEL"));
     }
 
@@ -208,6 +214,8 @@ public:
                             double time_taken = 0;   
                             double bytes_written = 0;                         
 
+                            VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
+
                             if (queue_id == 0) {
 
                                 // if we are rendering, use this pose and save it for the timewarp
@@ -278,6 +286,13 @@ public:
                             if (send(fds[i].fd, buffer, sizeof(double) * 2, 0) < 0) {
                                 std::cout << "[ILLIXR host server] Error responding to bridge driver" << std::endl;
                             }
+
+                            spdlog::get("native_renderer")->info(formatted("time: %d", time_taken));
+
+                            mtp_logger.log(record{mtp_record,
+                                {
+                                    {(size_t) time_taken},
+                                }});
                             
 
                             VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
@@ -624,13 +639,7 @@ private:
             std::cout << "[ILLIXR host server] wrote " << rc << " bytes to XDMA" << std::endl;
         }
 
-        // filename lol
-        auto formatted = [](const char* format, auto... args) {
-            size_t size = snprintf(nullptr, 0, format, args...) + 1;
-            std::string result(size, '\0');
-            snprintf(&result[0], size, format, args...);
-            return result;
-        };
+        
         std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%d.ppm", frame_count);
         const char* filename = fname.c_str();
 
@@ -1011,6 +1020,18 @@ private:
         VK_ASSERT_SUCCESS(vkCreateRenderPass(hs->vk_device, &render_pass_info, nullptr, &timewarp_pass))
     }
 
+    template <typename... Args>
+    std::string formatted(const char* format, Args... args) {
+        int size = std::snprintf(nullptr, 0, format, args...) + 1;
+        if (size <= 0) {
+            throw std::runtime_error("Error during formatting.");
+        }        
+        std::string result(size, '\0');        
+        std::snprintf(&result[0], size, format, args...);        
+        result.resize(size - 1);
+        return result;
+    }
+
     const std::shared_ptr<switchboard>         sb;
     // const std::shared_ptr<pose_prediction>     pp;
     const std::shared_ptr<headless_sink>       hs;
@@ -1051,6 +1072,7 @@ private:
     time_point last_fps_update;
 
     int frame_count = 0;
+    record_coalescer mtp_logger;
 
     int server_fd;
     std::vector<struct pollfd> fds;
