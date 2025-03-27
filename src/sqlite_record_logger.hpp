@@ -107,7 +107,7 @@ public:
 
         std::size_t processed = 0;
         while (!terminate.load()) {
-            std::this_thread::sleep_for(std::chrono::seconds{1});
+            std::this_thread::sleep_for(std::chrono::seconds{10});
             // Uncomment this block to log in "real time";
             // Otherwise, everything gets loged "post real time".
             

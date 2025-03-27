@@ -31,6 +31,15 @@
 
 using namespace ILLIXR;
 
+const record_header mtp_record{"mtp_record",
+    {
+        {"render pose (c)", typeid(std::uint32_t)},
+        {"render (c)", typeid(std::uint32_t)},
+        {"tw pose (c)", typeid(std::uint32_t)},
+        {"timewarp (c)", typeid(std::uint32_t)},
+        {"MTP", typeid(typeid(std::chrono::nanoseconds))},
+    }};
+
 class native_renderer : public threadloop {
 public:
     native_renderer(const std::string& name_, phonebook* pb)
@@ -38,7 +47,8 @@ public:
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
-        , last_fps_update{std::chrono::duration<long, std::nano>{0}} {
+        , last_fps_update{std::chrono::duration<long, std::nano>{0}}
+        , mtp_logger{record_logger_} {
         spdlogger(std::getenv("NATIVE_RENDERER_LOG_LEVEL"));
     }
 
@@ -69,40 +79,61 @@ public:
      */
     void _p_one_iteration() override {
 
-        uint64_t start_cycle = rdcycle();
+        uint64_t before_render_pose = rdcycle();
 
-        // offload render 
-        auto render_pose = pp->get_fast_pose().pose;
+            // offload render 
+            auto render_pose = pp->get_fast_pose();
+
+        uint64_t after_render_pose = rdcycle();
 
         tx_packets[0] = make_start_packet(0, 7, 0);
-        make_pose_packets(tx_packets, render_pose);
-
-        // send to bridge
-        // bridge will pause target execution while render is occurring
-        send_packets(tx_packets, 8);
-
-        // get the amount of time to stall from the bridge
-        // block to simulate target execution
-        long int delay_ns = read_delay_time();
-        std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
-        std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+        make_pose_packets(tx_packets, render_pose.pose);
 
 
-        // offload timewarp 
-        auto timewarp_pose = pp->get_fast_pose().pose;
+        uint64_t before_render = rdcycle();
+
+            // send to bridge
+            // bridge will pause target execution while render is occurring
+            send_packets(tx_packets, 8);
+
+            // get the amount of time to stall from the bridge
+            // block to simulate target execution
+            long int delay_ns = read_delay_time();
+            // std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
+            std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+
+        uint64_t after_render = rdcycle();
+
+        uint64_t before_tw_pose = rdcycle();
+
+            // offload timewarp 
+            auto timewarp_pose = pp->get_fast_pose().pose;
+
+        uint64_t after_tw_pose = rdcycle();
 
         tx_packets[0] = make_start_packet(1, 7, 0);
         make_pose_packets(tx_packets, timewarp_pose);
 
-        send_packets(tx_packets, 8);
+        uint64_t before_tw = rdcycle();
 
-        delay_ns = read_delay_time();
-        std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
-        std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+            send_packets(tx_packets, 8);
 
-        uint64_t end_cycle = rdcycle();
+            delay_ns = read_delay_time();
+            // std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
+            std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
-        std::cout << "[illixr guest] cycles: " << end_cycle - start_cycle << std::endl;
+        uint64_t after_tw = rdcycle();
+
+        mtp_logger.log(record{mtp_record,
+            {
+                {(uint32_t) (after_render_pose - before_render_pose)},
+                {(uint32_t) (after_render - before_render)},
+                {(uint32_t) (after_tw_pose - before_tw_pose)},
+                {(uint32_t) (after_tw - before_tw)},
+                {_m_clock->now() - render_pose.pose.sensor_time},
+            }});
+
+        // std::cout << "[illixr guest] cycles: " << end_cycle - start_cycle << std::endl;
 
     }
 
@@ -166,5 +197,6 @@ private:
     time_point last_fps_update;
 
     int frame_count = 0;
+    record_coalescer mtp_logger;
 };
 PLUGIN_MAIN(native_renderer)
