@@ -188,21 +188,21 @@ public:
                             --i;
                         } else {
 
-                            float socket_floats[15];
-                            std::memcpy(socket_floats, socket_buffer, bytes_read);
+                            uint32_t socket_data[15];
+                            std::memcpy(socket_data, socket_buffer, bytes_read);
 
                             std::cout << "[ILLIXR host server] Received from bridge: ";
-                            for (size_t i = 0; i < 8; ++i) {
-                                std::cout << socket_floats[i] << " ";
+                            for (size_t i = 0; i < 9; ++i) {
+                                std::cout << socket_data[i] << " ";
                             }
                             std::cout << std::endl;
 
-                            int queue_id = socket_floats[0];
-                            int dma_read = socket_floats[1];
+                            int queue_id = socket_data[0];
+                            int dma_read = socket_data[1];
 
                             auto t = time_point();
-                            Eigen::Vector3f v(socket_floats[2], socket_floats[3], socket_floats[4]);
-                            Eigen::Quaternionf q(socket_floats[5], socket_floats[6], socket_floats[7], socket_floats[8]);
+                            Eigen::Vector3f v(socket_data[2], socket_data[3], socket_data[4]);
+                            Eigen::Quaternionf q(socket_data[5], socket_data[6], socket_data[7], socket_data[8]);
                             pose_type latest_pose = pose_type(t, v, q);
 
                             double time_taken = 0;   
