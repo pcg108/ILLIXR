@@ -20,7 +20,7 @@ typedef unsigned long long ullong;
  * Lazy loading has an artificial negative impact on performance which is absent from an online-sensor system.
  * Eager loading deteriorates the startup time and uses more memory.
  */
-//#define LAZY
+#define LAZY
 
 class lazy_load_image {
 public:
@@ -36,7 +36,7 @@ public:
     [[nodiscard]] cv::Mat load() const {
 #ifdef LAZY
         cv::Mat _m_mat = cv::imread(_m_path, cv::IMREAD_GRAYSCALE);
-    #error "Linux scheduler cannot interrupt IO work, so lazy-loading is unadvisable."
+    // #error "Linux scheduler cannot interrupt IO work, so lazy-loading is unadvisable."
 #endif
         assert(!_m_mat.empty());
         return _m_mat;

@@ -99,7 +99,7 @@ public:
             // get the amount of time to stall from the bridge
             // block to simulate target execution
             long int delay_ns = read_delay_time();
-            // std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
+            std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
             std::this_thread::sleep_for(std::chrono::nanoseconds(900000000));
 
         uint64_t after_render = rdcycle();
@@ -119,7 +119,7 @@ public:
             send_packets(tx_packets, 8);
 
             delay_ns = read_delay_time();
-            // std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
+            std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
             std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
         uint64_t after_tw = rdcycle();
