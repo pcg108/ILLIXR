@@ -124,6 +124,8 @@ public:
 
         uint64_t after_tw = rdcycle();
 
+        std::cout << "[illixr guest] mtp: " << _m_clock->now() - render_pose.pose.sensor_time << std::endl;
+
         mtp_logger.log(record{mtp_record,
             {
                 {(size_t) (after_render_pose - before_render_pose)},
