@@ -132,7 +132,7 @@ public:
                 {(size_t) (after_render - before_render)},
                 {(size_t) (after_tw_pose - before_tw_pose)},
                 {(size_t) (after_tw - before_tw)},
-                {_m_clock->now() - render_pose.pose.sensor_time},
+                {_m_clock->now() - timewarp_pose.sensor_time},
             }});
 
     }
