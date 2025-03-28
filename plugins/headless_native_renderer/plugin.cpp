@@ -33,11 +33,11 @@ using namespace ILLIXR;
 
 const record_header mtp_record{"mtp_record",
     {
-        {"render pose (c)", typeid(std::size_t)},
-        {"render (c)", typeid(std::size_t)},
-        {"tw pose (c)", typeid(std::size_t)},
-        {"timewarp (c)", typeid(std::size_t)},
-        {"MTP", typeid(std::chrono::nanoseconds)},
+        {"render_pose_c", typeid(std::size_t)},
+        {"render_c", typeid(std::size_t)},
+        {"tw_pose_c", typeid(std::size_t)},
+        {"timewarp_c", typeid(std::size_t)},
+        {"MTP_ns", typeid(std::chrono::nanoseconds)},
     }};
 
 class native_renderer : public threadloop {
@@ -100,7 +100,7 @@ public:
             // block to simulate target execution
             long int delay_ns = read_delay_time();
             // std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
-            std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(900000000));
 
         uint64_t after_render = rdcycle();
 
@@ -133,7 +133,8 @@ public:
                 {_m_clock->now() - render_pose.pose.sensor_time},
             }});
 
-        // std::cout << "[illixr guest] cycles: " << end_cycle - start_cycle << std::endl;
+
+        std::cout << "[illixr guest] cycles: " << end_cycle - start_cycle << std::endl;
 
     }
 
