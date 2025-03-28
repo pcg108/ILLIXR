@@ -133,9 +133,6 @@ public:
                 {_m_clock->now() - render_pose.pose.sensor_time},
             }});
 
-
-        std::cout << "[illixr guest] cycles: " << end_cycle - start_cycle << std::endl;
-
     }
 
 private:
