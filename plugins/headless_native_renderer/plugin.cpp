@@ -126,10 +126,10 @@ public:
 
         mtp_logger.log(record{mtp_record,
             {
-                {(uint32_t) (after_render_pose - before_render_pose)},
-                {(uint32_t) (after_render - before_render)},
-                {(uint32_t) (after_tw_pose - before_tw_pose)},
-                {(uint32_t) (after_tw - before_tw)},
+                {(size_t) (after_render_pose - before_render_pose)},
+                {(size_t) (after_render - before_render)},
+                {(size_t) (after_tw_pose - before_tw_pose)},
+                {(size_t) (after_tw - before_tw)},
                 {_m_clock->now() - render_pose.pose.sensor_time},
             }});
 
