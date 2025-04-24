@@ -14,6 +14,7 @@
 #include "illixr/global_module_defs.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/pose_prediction.hpp"
+#include "illixr/eye_tracking.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
 #include "illixr/vk_util/headless_sink.hpp"
@@ -46,6 +47,7 @@ public:
         : threadloop{name_, pb}
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
+        , et{pb->lookup_impl<eye_tracking_target>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
         , mtp_logger{record_logger_} {
@@ -78,6 +80,9 @@ public:
      * @brief Executes one iteration of the plugin's main loop.
      */
     void _p_one_iteration() override {
+
+        eye_position_type eye_pos = et->get_eye_position();
+        std::cout << "[illixr guest] eye_pos: " << eye_pos.eye_x << ", " << eye_pos.eye_y << std::endl;
 
         uint64_t before_render_pose = rdcycle();
 
@@ -162,12 +167,14 @@ private:
     } 
 
     long int read_delay_time() {
+        return 0;
         // look for one packet containing the amount of time to delay in ns
         while ((reg_read8(GRAPHICS_STATUS) & 0x1) == 0) ;
         return (long int) reg_read32(GRAPHICS_OUT);
     }
 
     void send_packets(uint32_t* packets, int len) {
+        return;
         // std::cout << "[illixr guest] sending packets: " << std::endl;;
         for (int i = 0; i < len; i++) {
             // std::cout << "   " << packets[i] << std::endl;
@@ -180,14 +187,16 @@ private:
 
     static inline uint64_t rdcycle() {
         uint64_t cycles;
-        asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
+        // asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
         return cycles;
     }
 
     
     const std::shared_ptr<switchboard>         sb;
     const std::shared_ptr<pose_prediction>     pp;
+    const std::shared_ptr<eye_tracking_target> et;
     const std::shared_ptr<const RelativeClock> _m_clock;
+
 
     intptr_t ptr, dma_ptr;
     uint32_t tx_packets[50];

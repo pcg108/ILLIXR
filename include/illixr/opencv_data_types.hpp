@@ -28,4 +28,17 @@ struct rgb_depth_type : public switchboard::event {
         , depth{std::move(_depth)} { }
 };
 
+struct eye_type : public switchboard::event {
+    time_point  time;
+    cv::Mat     eye_img;
+    float       eye_x_true;
+    float       eye_y_true;
+
+    eye_type(time_point _time, cv::Mat _eye_img, float _eye_x_true, float _eye_y_true)
+        : time{_time}
+        , eye_img{std::move(_eye_img)}
+        , eye_x_true{_eye_x_true}
+        , eye_y_true{_eye_y_true} { }
+};
+
 } // namespace ILLIXR
