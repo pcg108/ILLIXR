@@ -24,7 +24,7 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
         ${ILLIXR_SOURCE_DIR}/include
         ${onnxruntime_INCLUDE_DIRS})
 
-target_include_directories(${PLUGIN_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include ${Eigen3_INCLUDE_DIRS})
+target_include_directories(${PLUGIN_NAME} PRIVATE ${onnxruntime_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include ${Eigen3_INCLUDE_DIRS})
 target_link_libraries(${PLUGIN_NAME} 
         ${OpenCV_LIBRARIES}
         ${Eigen3_LIBRARIES} 
@@ -34,3 +34,4 @@ target_link_libraries(${PLUGIN_NAME}
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 
 install(TARGETS ${PLUGIN_NAME} DESTINATION lib)
+

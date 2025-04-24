@@ -105,7 +105,7 @@ public:
             // block to simulate target execution
             long int delay_ns = read_delay_time();
             std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
-            std::this_thread::sleep_for(std::chrono::nanoseconds(900000000));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
         uint64_t after_render = rdcycle();
 
@@ -187,7 +187,7 @@ private:
 
     static inline uint64_t rdcycle() {
         uint64_t cycles;
-        // asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
+        asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
         return cycles;
     }
 

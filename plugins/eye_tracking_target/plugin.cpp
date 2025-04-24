@@ -68,9 +68,21 @@ public:
                     }
 
                     clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
-
                 } else if (value == 1) {
                     eye_tracking_backend = GPU;
+                    
+                    std::cout << "[eye tracking] mapping MMIO" << std::endl;
+                    int mem_fd;
+                    mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+                    ptr = (intptr_t) mmap(NULL, 16, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0x4000);
+                
+                    std::cout << "[eye tracking] mapping DMA" << std::endl;
+                    int mem_fd2;
+                    mem_fd2 = open("/dev/mem", O_RDWR | O_SYNC);
+                    dma_ptr = (intptr_t) mmap(NULL, 50000000, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd2, 0x88000000);
+
+                    std::cout << "[illixr target] finished mapping" << std::endl;
+
                 } else if (value == 2) {
                     eye_tracking_backend = NPU;
                 } else {
@@ -110,9 +122,21 @@ public:
             get_fovea(pred_x, pred_y);
 
         } else if (eye_tracking_backend == GPU) {
+            cv::Mat img = preprocess_img(eye_pos->eye_img);
+
             // copy the image to XDMA
-            // send bridge stream message to host illixr worker
+            size_t img_size = img.total() * img.elemSize(); 
+            std::memcpy(dma_ptr, img.data, img_size);
+
+            // send bridge stream message to host illixr worker to read the image and run the model on host
+            tx_packets[0] = make_start_packet(2, 1, img_size);
+            send_packets(tx_packets, 1);
+
             // receive result and stall on target 
+            long int delay_ns = read_delay_time();
+            std::cout << "[eye tracking] delaying for: " << delay_ns << std::endl;
+            std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+
         } else if (eye_tracking_backend == NPU) {
 
         }
@@ -194,6 +218,30 @@ private:
         // std::cout << "predicted fovea: " << fovea_x << ", " << fovea_y << std::endl; 
     }
 
+    uint32_t make_start_packet(int queue_id, int num_packets, int read_dma_bytes) {
+
+        // construct gpu-command-start message {start, queue ID, number of MMIO packets to read, number of DMA bytes to read}
+        uint32_t start_stream   = (uint32_t) 0xFF;
+        uint32_t queue          = ((uint32_t) queue_id) & 0xFF;  
+        uint32_t size           = ((uint32_t) num_packets) & 0xFF;
+        uint32_t dma_bytes      = ((uint32_t) read_dma_bytes) & 0xFF;
+        start_stream = (start_stream << 24) | (queue << 16) | (size << 8) | (dma_bytes);
+
+        return start_stream;
+    }
+
+    void send_packets(uint32_t* packets, int len) {
+
+        // std::cout << "[illixr guest] sending packets: " << std::endl;;
+        for (int i = 0; i < len; i++) {
+            // std::cout << "   " << packets[i] << std::endl;
+            while ((reg_read8(GRAPHICS_STATUS) & 0x2) == 0) ;
+            reg_write32(GRAPHICS_IN, packets[i]);
+        }
+        
+        return;
+    }
+
     const std::shared_ptr<switchboard>                               sb;
     const std::shared_ptr<const RelativeClock>                       _m_clock;
 
@@ -214,6 +262,10 @@ private:
 
     cv::Mat lut;
     cv::Ptr<cv::CLAHE> clahe;
+
+    intptr_t ptr, dma_ptr;
+    uint32_t tx_packets[50];
+    uint32_t rx_packets[50];
 };
 
 class eye_tracking_target_plugin : public plugin {
