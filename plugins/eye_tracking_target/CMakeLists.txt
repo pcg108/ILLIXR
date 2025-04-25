@@ -24,6 +24,7 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR} 
         ${OpenCV_INCLUDE_DIRS} 
         ${Protobuf_INCLUDE_DIRS} 
+        ${onnxruntime_INCLUDE_DIRS}
         ${ILLIXR_SOURCE_DIR}/include)
 
 target_include_directories(${PLUGIN_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include ${Eigen3_INCLUDE_DIRS})
