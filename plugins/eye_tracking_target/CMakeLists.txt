@@ -29,8 +29,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${ILLIX
 target_link_libraries(${PLUGIN_NAME} 
         ${OpenCV_LIBRARIES}
         ${Eigen3_LIBRARIES} 
-        spdlog::spdlog
-        ${onnxruntime_LIBRARY})
+        spdlog::spdlog)
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 
