@@ -51,55 +51,53 @@ public:
                 throw std::runtime_error("Model path is not set. Please set the ILLIXR_EYE_MODEL environment variable.");
             }
 
+            int backend = 0;
             const char* eye_tracking_env = std::getenv("ILLIXR_EYE_TRACKING");
             if (eye_tracking_env == nullptr) {
                 std::cout << "[illixr guest] ILLIXR_EYE_TRACKING not set. Defaulting to CPU." << std::endl;
-                eye_tracking_env = 0;
             } else {
+                backend = std::stoi(eye_tracking_env);
                 std::cout << "[illixr guest] ILLIXR_EYE_TRACKING: " << eye_tracking_env << std::endl;
             }
 
-            if (eye_tracking_env) {
-                int value = std::stoi(eye_tracking_env);
-                if (value == 0) {
-                    eye_tracking_backend = CPU;
-                    session = std::make_unique<Ort::Session>(env, model_path.c_str(), session_options);
+            if (backend == 0) {
+                eye_tracking_backend = CPU;
+                session = std::make_unique<Ort::Session>(env, model_path.c_str(), session_options);
 
-                    auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-                    input_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, input_image_.data(), input_image_.size(),
-                                                    input_shape_.data(), input_shape_.size()));
-                    output_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(),
-                                                    output_shape_.data(), output_shape_.size()));
-                    
-                    // Initialize the lookup table for gamma correction
-                    lut = cv::Mat(256, 1, CV_8UC1);
-                    double gamma = 0.8; 
-                    for (int i = 0; i < 256; ++i) {
-                        lut.at<uchar>(i) = cv::saturate_cast<uchar>(255.0 * std::pow(i / 255.0, gamma));
-                    }
-
-                    clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
-                } else if (value == 1) {
-                    eye_tracking_backend = GPU;
-                    
-                    std::cout << "[eye tracking] mapping MMIO" << std::endl;
-                    int mem_fd;
-                    mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
-                    ptr = (intptr_t) mmap(NULL, 16, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0x4000);
+                auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+                input_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, input_image_.data(), input_image_.size(),
+                                                input_shape_.data(), input_shape_.size()));
+                output_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(),
+                                                output_shape_.data(), output_shape_.size()));
                 
-                    std::cout << "[eye tracking] mapping DMA" << std::endl;
-                    int mem_fd2;
-                    mem_fd2 = open("/dev/mem", O_RDWR | O_SYNC);
-                    dma_ptr = (intptr_t) mmap(NULL, 50000000, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd2, 0x88000000);
-
-                    std::cout << "[illixr target] finished mapping" << std::endl;
-
-                } else if (value == 2) {
-                    eye_tracking_backend = NPU;
-                } else {
-                    std::cout << "[illixr guest] Invalid value for ILLIXR_EYE_TRACKING. Defaulting to CPU." << std::endl;
+                // Initialize the lookup table for gamma correction
+                lut = cv::Mat(256, 1, CV_8UC1);
+                double gamma = 0.8; 
+                for (int i = 0; i < 256; ++i) {
+                    lut.at<uchar>(i) = cv::saturate_cast<uchar>(255.0 * std::pow(i / 255.0, gamma));
                 }
-            } 
+
+                clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
+            } else if (value == 1) {
+                eye_tracking_backend = GPU;
+                
+                std::cout << "[eye tracking] mapping MMIO" << std::endl;
+                int mem_fd;
+                mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+                ptr = (intptr_t) mmap(NULL, 16, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0x4000);
+            
+                std::cout << "[eye tracking] mapping DMA" << std::endl;
+                int mem_fd2;
+                mem_fd2 = open("/dev/mem", O_RDWR | O_SYNC);
+                dma_ptr = (intptr_t) mmap(NULL, 50000000, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd2, 0x88000000);
+
+                std::cout << "[illixr target] finished mapping" << std::endl;
+
+            } else if (value == 2) {
+                eye_tracking_backend = NPU;
+            } else {
+                std::cout << "[illixr guest] Invalid value for ILLIXR_EYE_TRACKING. Defaulting to CPU." << std::endl;
+            }
         }
 
 
