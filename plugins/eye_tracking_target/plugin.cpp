@@ -78,7 +78,7 @@ public:
                 }
 
                 clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
-            } else if (value == 1) {
+            } else if (backend == 1) {
                 eye_tracking_backend = GPU;
                 
                 std::cout << "[eye tracking] mapping MMIO" << std::endl;
@@ -93,7 +93,7 @@ public:
 
                 std::cout << "[illixr target] finished mapping" << std::endl;
 
-            } else if (value == 2) {
+            } else if (backend == 2) {
                 eye_tracking_backend = NPU;
             } else {
                 std::cout << "[illixr guest] Invalid value for ILLIXR_EYE_TRACKING. Defaulting to CPU." << std::endl;
