@@ -17,6 +17,11 @@
 #include <filesystem>
 #include <shared_mutex>
 
+#define GRAPHICS_STATUS (ptr + 0x00)
+#define GRAPHICS_IN     (ptr + 0x04)
+#define GRAPHICS_OUT    (ptr + 0x0C)
+#define GRAPHICS_DMA    (dma_ptr)
+
 using namespace ILLIXR;
 
 enum EYE_BACKEND {
@@ -244,6 +249,13 @@ private:
         }
         
         return;
+    }
+
+    long int read_delay_time() {
+        return 0;
+        // look for one packet containing the amount of time to delay in ns
+        while ((reg_read8(GRAPHICS_STATUS) & 0x1) == 0) ;
+        return (long int) reg_read32(GRAPHICS_OUT);
     }
 
     const std::shared_ptr<switchboard>                               sb;
