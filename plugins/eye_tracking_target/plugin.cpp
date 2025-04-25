@@ -4,6 +4,10 @@
 #include "illixr/phonebook.hpp"
 #include "illixr/eye_tracking.hpp"
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
 #include <onnxruntime_cxx_api.h>
 #include <opencv2/opencv.hpp>  
 #include <opencv2/imgcodecs.hpp>  
