@@ -17,19 +17,20 @@ if(BUILD_OPENCV)
         add_dependencies(${PLUGIN_NAME} OpenCV_Viz)
 endif()
 
+include_directories(${onnxruntime_INCLUDE_DIRS}/onnxruntime/include)
+
 target_include_directories(${PLUGIN_NAME} PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR} 
         ${OpenCV_INCLUDE_DIRS} 
         ${Protobuf_INCLUDE_DIRS} 
-        ${ILLIXR_SOURCE_DIR}/include
-        ${onnxruntime_INCLUDE_DIRS})
+        ${ILLIXR_SOURCE_DIR}/include)
 
-target_include_directories(${PLUGIN_NAME} PRIVATE ${onnxruntime_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include ${Eigen3_INCLUDE_DIRS})
+target_include_directories(${PLUGIN_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include ${Eigen3_INCLUDE_DIRS})
 target_link_libraries(${PLUGIN_NAME} 
         ${OpenCV_LIBRARIES}
         ${Eigen3_LIBRARIES} 
         spdlog::spdlog
-        ${onnxruntime_LIBRARIES})
+        ${onnxruntime_LIBRARY})
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 
