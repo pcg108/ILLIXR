@@ -137,7 +137,7 @@ public:
 
             // copy the image to XDMA
             size_t img_size = img.total() * img.elemSize(); 
-            std::memcpy(dma_ptr, img.data, img_size);
+            std::memcpy((void*) dma_ptr, img.data, img_size);
 
             // send bridge stream message to host illixr worker to read the image and run the model on host
             tx_packets[0] = make_start_packet(2, 1, img_size);
