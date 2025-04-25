@@ -17,6 +17,8 @@
 #include <filesystem>
 #include <shared_mutex>
 
+#include "mmio.h"
+
 #define GRAPHICS_STATUS (ptr + 0x00)
 #define GRAPHICS_IN     (ptr + 0x04)
 #define GRAPHICS_OUT    (ptr + 0x0C)
