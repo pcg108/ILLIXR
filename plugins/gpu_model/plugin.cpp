@@ -50,7 +50,7 @@ public:
 
         // send to bridge
         // bridge will pause target execution while render is occurring
-        send_packets(tx_packets, 10); // start packet, 7 pose packets, 2 eye packet
+        send_packets(tx_packets, 10); // start packet, 7 pose packets, 2 eye packets
 
         long int delay_ns = read_delay_time();
 
@@ -60,7 +60,8 @@ public:
     }
 
     void send_gpu_compute_message(int queue_id, int read_dma_bytes) {
-        tx_packets[0] = make_start_packet(queue_id, 1, read_dma_bytes);
+        tx_packets[0] = make_start_packet(queue_id, 0, read_dma_bytes);
+        std::cout << "[illixr guest] sending compute message" << std::endl;
         send_packets(tx_packets, 1);
 
         long int delay_ns = read_delay_time();
@@ -88,7 +89,7 @@ private:
         return start_stream;
     }
 
-    void make_pose_packets(uint32_t* packets, pose_type pose, int start_index = 0) {
+    void make_pose_packets(uint32_t* packets, pose_type pose, int start_index) {
         packets[start_index] = (uint32_t) pose.position.x();
         packets[start_index+1] = (uint32_t) pose.position.y();
         packets[start_index+2] = (uint32_t) pose.position.z();
@@ -98,25 +99,23 @@ private:
         packets[start_index+6] = (uint32_t) pose.orientation.z();
     } 
 
-    void make_eye_pose_packets(uint32_t* packets, eye_position_type eye_pos, int start_index = 0) {
+    void make_eye_pose_packets(uint32_t* packets, eye_position_type eye_pos, int start_index) {
         packets[start_index] = (uint32_t) eye_pos.eye_x;
         packets[start_index+1] = (uint32_t) eye_pos.eye_y;
     }
 
     long int read_delay_time() {
-        return 0;
         // look for one packet containing the amount of time to delay in ns
         while ((reg_read8(GRAPHICS_STATUS) & 0x1) == 0) ;
         return (long int) reg_read32(GRAPHICS_OUT);
     }
 
     void send_packets(uint32_t* packets, int len) {
-        return;
         std::unique_lock lock{bridge_mutex};
 
-        // std::cout << "[illixr guest] sending packets: " << std::endl;;
+        std::cout << "[illixr guest] sending packets: " << std::endl;;
         for (int i = 0; i < len; i++) {
-            // std::cout << "   " << packets[i] << std::endl;
+            std::cout << "   " << packets[i] << std::endl;
             while ((reg_read8(GRAPHICS_STATUS) & 0x2) == 0) ;
             reg_write32(GRAPHICS_IN, packets[i]);
         }
