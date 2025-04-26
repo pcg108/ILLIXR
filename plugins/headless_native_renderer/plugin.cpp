@@ -70,7 +70,7 @@ public:
         switchboard::ptr<const eye_position_type> eye_pos  = _m_eye_pos.get_ro_nullable();
 
         if (!eye_pos) {
-            std::cout << "[illixr guest] No eye data" << std::endl;
+            // std::cout << "[illixr guest] No eye data" << std::endl;
             return;
         }
 
