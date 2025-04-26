@@ -101,14 +101,14 @@ public:
         switchboard::ptr<const eye_type> eye_pos = _m_eye_raw.get_ro_nullable();
 
        if (!eye_pos) {
-            std::cout << "No eye data" << std::endl;
+            // std::cout << "No eye data" << std::endl;
             return eye_position_type{_m_clock->now(), 0.0, 0.0};
        }
 
         float pred_x = eye_pos->eye_x_true;
         float pred_y = eye_pos->eye_y_true;
 
-        // std::cout << "actual fovea: " << pred_x << ", " << pred_y << std::endl;
+        std::cout << "actual fovea: " << pred_x << ", " << pred_y << std::endl;
 
         if (eye_tracking_backend == CPU) {
             // preprocess image 
