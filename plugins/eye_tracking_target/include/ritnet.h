@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include "gemmini.h"
 extern void gemmini_inference(elem_t * images, float eye_x, float eye_y);
 
 #ifdef __cplusplus

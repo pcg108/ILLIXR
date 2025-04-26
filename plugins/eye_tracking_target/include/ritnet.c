@@ -4,7 +4,6 @@
 #include <inttypes.h>
 #include <sys/mman.h>
 
-#include "gemmini.h"
 #include "ritnet_params.h"
 #include "ritnet_weights.h"
 #include "ritnet_helpers.h"
