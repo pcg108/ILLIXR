@@ -54,7 +54,7 @@ public:
 
         long int delay_ns = read_delay_time();
 
-        // std::cout << "[illixr guest] render delaying for: " << delay_ns << std::endl;
+        std::cout << "[illixr guest] render delaying for: " << delay_ns << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
     }
@@ -65,7 +65,7 @@ public:
 
         long int delay_ns = read_delay_time();
 
-        // std::cout << "[illixr guest] compute delaying for: " << delay_ns << std::endl;
+        std::cout << "[illixr guest] compute delaying for: " << delay_ns << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
     }
 
