@@ -9,6 +9,7 @@
 #include "ritnet_helpers.h"
 
 #include "ritnet.h"
+#include "gemmini.h"
 
 void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
