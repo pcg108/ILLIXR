@@ -48,6 +48,7 @@ int ILLIXR::run(const cxxopts::ParseResult& options) {
     }
     GET_STRING(data, ILLIXR_DATA)
     GET_STRING(demo_data, ILLIXR_DEMO_DATA)
+    GET_STRING(eye_model, ILLIXR_EYE_MODEL)
     GET_BOOL(enable_offload, ILLIXR_OFFLOAD_ENABLE)
     GET_BOOL(alignment_enable, ILLIXR_ALIGNMENT_ENABLE)
     GET_BOOL(enable_verbose_errors, ILLIXR_ENABLE_VERBOSE_ERRORS)

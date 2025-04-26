@@ -69,6 +69,17 @@ struct imu_integrator_input : public switchboard::event {
         , quat{std::move(quat_)} { }
 };
 
+struct eye_position_type : public switchboard::event {
+    time_point time;
+    float      eye_x;
+    float      eye_y;
+
+    eye_position_type(time_point _time, float _eye_x, float _eye_y)
+        : time{_time}
+        , eye_x{_eye_x}
+        , eye_y{_eye_y} { }
+};
+
 // Output of the IMU integrator to be used by pose prediction
 struct imu_raw_type : public switchboard::event {
     // Biases from the last two IMU integration iterations used by RK4 for pose predict

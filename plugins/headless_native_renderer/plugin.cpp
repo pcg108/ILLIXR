@@ -14,12 +14,18 @@
 #include <unistd.h>
 #include <vulkan/vulkan_core.h>
 
+#include <opencv2/opencv.hpp>  
+#include <opencv2/imgcodecs.hpp>  
+#include <opencv2/core.hpp> 
+#include <opencv2/core/mat.hpp>
+
 #define VMA_IMPLEMENTATION
 #include "illixr/global_module_defs.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/pose_prediction.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
+#include "illixr/eye_tracking_host.hpp"
 #include "illixr/vk_util/headless_sink.hpp"
 #include "illixr/vk_util/render_pass.hpp"
 
@@ -37,14 +43,17 @@ const char* SOCKET_PATH = "/tmp/illixr-host";
 const int BUFFER_SIZE = 1024;
 const int MAX_CLIENTS = 10;
 
+static constexpr const int width_ = 160;
+static constexpr const int height_ = 240;
+
 class native_renderer : public threadloop {
 public:
     native_renderer(const std::string& name_, phonebook* pb)
         : threadloop{name_, pb}
         , sb{pb->lookup_impl<switchboard>()}
-        // , pp{pb->lookup_impl<pose_prediction>()}
         , hs{pb->lookup_impl<headless_sink>()}
         , tw{pb->lookup_impl<timewarp>()}
+        , et{pb->lookup_impl<eye_tracking_host>()}
         , src{pb->lookup_impl<app>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
@@ -206,17 +215,19 @@ public:
                             int queue_id = socket_data[0];
                             int dma_read = socket_data[1];
 
-                            auto t = time_point();
-                            Eigen::Vector3f v(socket_data[2], socket_data[3], socket_data[4]);
-                            Eigen::Quaternionf q(socket_data[5], socket_data[6], socket_data[7], socket_data[8]);
-                            pose_type latest_pose = pose_type(t, v, q);
-
                             double time_taken = 0;   
                             double bytes_written = 0;                         
 
                             VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
 
                             if (queue_id == 0) {
+
+                                auto t = time_point();
+                                Eigen::Vector3f v(socket_data[2], socket_data[3], socket_data[4]);
+                                Eigen::Quaternionf q(socket_data[5], socket_data[6], socket_data[7], socket_data[8]);
+                                eye_position_type eye_pos(_m_clock->now(), socket_data[9], socket_data[10]);
+
+                                pose_type latest_pose = pose_type(t, v, q);
 
                                 // if we are rendering, use this pose and save it for the timewarp
                                 render_pose = latest_pose;
@@ -248,7 +259,13 @@ public:
 
                                 time_taken = get_timestamp(appQueryPool);
 
-                            } else {
+                            } else if (queue_id == 1) {
+
+                                auto t = time_point();
+                                Eigen::Vector3f v(socket_data[2], socket_data[3], socket_data[4]);
+                                Eigen::Quaternionf q(socket_data[5], socket_data[6], socket_data[7], socket_data[8]);
+                                eye_position_type eye_pos(_m_clock->now(), socket_data[9], socket_data[10]);
+                                pose_type latest_pose = pose_type(t, v, q);
 
                                 // timewarp will use the pose from render along with the latest pose
                                 tw->update_uniforms(render_pose, latest_pose);
@@ -276,6 +293,28 @@ public:
 
                                 bytes_written = save_frame();
 
+                            } else if (queue_id == 2) {
+
+                                if (dma_read == 0) {
+                                    std::cout << "[ILLIXR host server] Error: received eye tracking request but no XMDA read" << std::endl;
+                                }
+
+                                int rc = pread(xdma_c2hfd, input_image_.data(), dma_read, target_dram_addr);
+                                if (rc != dma_read) {
+                                    std::cout << "[ILLIXR host server] Error: read bytes " << rc << " expected " << dma_read << std::endl;
+                                }
+
+                                cv::Mat img = cv::Mat(height_, width_, CV_32FC1, input_image_.data());
+
+                                auto start = _m_clock->now();
+                                eye_position_type eye_pos = et->get_eye_position(img);
+                                auto end = _m_clock->now();
+
+                                time_taken = duration2double<std::nano>(end - start);
+                                std::cout << "[ILLIXR host server] eye tracking took: " << time_taken << " ns" << std::endl;
+
+                            } else {
+                                std::cout << "Unrecognized queue ID" << std::endl;
                             }
 
                             std::cout << "time: " << time_taken / 1e6 << std::endl;
@@ -1033,7 +1072,7 @@ private:
     }
 
     const std::shared_ptr<switchboard>         sb;
-    // const std::shared_ptr<pose_prediction>     pp;
+    const std::shared_ptr<eye_tracking_host> et;
     const std::shared_ptr<headless_sink>       hs;
     const std::shared_ptr<timewarp>            tw;
     const std::shared_ptr<app>                 src;
@@ -1084,5 +1123,6 @@ private:
     int xdma_h2cfd;
     int xdma_c2hfd;
     unsigned long long target_dram_addr = (0x88000000 + 0x380000000) % 0x400000000;
+    std::array<float, width_ * height_> input_image_{}; 
 };
 PLUGIN_MAIN(native_renderer)
