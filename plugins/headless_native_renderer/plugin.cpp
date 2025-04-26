@@ -23,7 +23,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "illixr/gl_util/lib/tiny_obj_loader.h"
 
-#include "mmio.h"
+#include "include/mmio.h"
 
 #define GRAPHICS_STATUS (ptr + 0x00)
 #define GRAPHICS_IN     (ptr + 0x04)
@@ -47,7 +47,8 @@ public:
         : threadloop{name_, pb}
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
-        , et{pb->lookup_impl<eye_tracking_target>()}
+        // , et{pb->lookup_impl<eye_tracking_target>()}
+        , _m_eye_pos{sb->get_reader<eye_position_type>("eye_pos")} 
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
         , mtp_logger{record_logger_} {
@@ -74,6 +75,8 @@ public:
         dma_ptr = (intptr_t) mmap(NULL, 50000000, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd2, 0x88000000);
 
         std::cout << "[illixr target] finished mapping" << std::endl;
+
+        last_eye_pos = std::make_unique<eye_position_type>(eye_position_type{_m_clock->now(), 0.0, 0.0});
     }
 
     /**
@@ -81,8 +84,21 @@ public:
      */
     void _p_one_iteration() override {
 
-        eye_position_type eye_pos = et->get_eye_position();
-        std::cout << "[illixr guest] eye_pos: " << eye_pos.eye_x << ", " << eye_pos.eye_y << std::endl;
+        switchboard::ptr<const eye_position_type> eye_pos  = _m_eye_pos.get_ro_nullable();
+
+        if (!eye_pos) {
+            std::cout << "[illixr guest] No eye data" << std::endl;
+            return;
+        }
+
+        if ((eye_pos->time - last_eye_pos->time) > std::chrono::milliseconds(10)) {
+            last_eye_pos->time = eye_pos->time;
+            last_eye_pos->eye_x = eye_pos->eye_x;
+            last_eye_pos->eye_y = eye_pos->eye_y;
+            std::cout << "[illixr guest] new eye_pos: " << last_eye_pos->eye_x << ", " << last_eye_pos->eye_y << std::endl;
+        }
+        
+
 
         uint64_t before_render_pose = rdcycle();
 
@@ -104,7 +120,7 @@ public:
             // get the amount of time to stall from the bridge
             // block to simulate target execution
             long int delay_ns = read_delay_time();
-            std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
+            // std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
             std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
         uint64_t after_render = rdcycle();
@@ -124,12 +140,12 @@ public:
             send_packets(tx_packets, 8);
 
             delay_ns = read_delay_time();
-            std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
+            // std::cout << "[illixr guest] delaying for: " << delay_ns << std::endl;
             std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
         uint64_t after_tw = rdcycle();
 
-        std::cout << "MTP: " << duration2double<std::milli>(_m_clock->now() - timewarp_pose.sensor_time) << std::endl;
+        // std::cout << "MTP: " << duration2double<std::milli>(_m_clock->now() - timewarp_pose.sensor_time) << std::endl;
 
         mtp_logger.log(record{mtp_record,
             {
@@ -187,7 +203,7 @@ private:
 
     static inline uint64_t rdcycle() {
         uint64_t cycles;
-        asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
+        // asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
         return cycles;
     }
 
@@ -197,6 +213,8 @@ private:
     const std::shared_ptr<eye_tracking_target> et;
     const std::shared_ptr<const RelativeClock> _m_clock;
 
+    switchboard::reader<eye_position_type>  _m_eye_pos;
+    std::shared_ptr<eye_position_type> last_eye_pos;
 
     intptr_t ptr, dma_ptr;
     uint32_t tx_packets[50];

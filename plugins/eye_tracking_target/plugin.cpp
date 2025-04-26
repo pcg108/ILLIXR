@@ -2,7 +2,9 @@
 #include "illixr/opencv_data_types.hpp"
 #include "illixr/data_format.hpp"
 #include "illixr/phonebook.hpp"
-#include "illixr/eye_tracking.hpp"
+// #include "illixr/eye_tracking.hpp"
+#include "illixr/threadloop.hpp"
+#include "illixr/switchboard.hpp"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -17,7 +19,7 @@
 #include <filesystem>
 #include <shared_mutex>
 
-#include "mmio.h"
+#include "include/mmio.h"
 
 #define GRAPHICS_STATUS (ptr + 0x00)
 #define GRAPHICS_IN     (ptr + 0x04)
@@ -34,12 +36,14 @@ enum EYE_BACKEND {
 static constexpr const int width_ = 160;
 static constexpr const int height_ = 240;
 
-class eye_tracking_target_impl : public eye_tracking_target {
+class eye_tracking_target : public threadloop {
 public:
-    explicit eye_tracking_target_impl(const phonebook* const pb)
-        : sb{pb->lookup_impl<switchboard>()}
+    eye_tracking_target(const std::string& name_, phonebook* const pb)
+        : threadloop{name_, pb}
+        , sb{pb->lookup_impl<switchboard>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_eye_raw{sb->get_reader<eye_type>("eye_raw")} 
+        , _m_eye_pos{sb->get_writer<eye_position_type>("eye_pos")} 
         { 
             env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "ILLIXR_EyeTracking");
             session_options = Ort::SessionOptions();
@@ -100,7 +104,19 @@ public:
             }
         }
 
+    void _p_thread_setup() override {
 
+        
+    }
+
+    void _p_one_iteration() override {
+        eye_position_type eye_p = get_eye_position();
+        _m_eye_pos.put(_m_eye_pos.allocate<eye_position_type>(eye_position_type{
+            eye_p.time,
+            eye_p.eye_x,
+            eye_p.eye_y
+        }));
+    }
 
 
     eye_position_type get_eye_position()  {
@@ -114,7 +130,7 @@ public:
         float pred_x = eye_pos->eye_x_true;
         float pred_y = eye_pos->eye_y_true;
 
-        std::cout << "actual fovea: " << pred_x << ", " << pred_y << std::endl;
+        // std::cout << "actual fovea: " << pred_x << ", " << pred_y << std::endl;
 
         if (eye_tracking_backend == CPU) {
             // preprocess image 
@@ -130,11 +146,11 @@ public:
             session->Run(run_options, input_names, input_tensor_.get(), 1, output_names, output_tensor_.get(), 1);
 
             get_fovea(pred_x, pred_y);
-            std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
+            // std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
         } else if (eye_tracking_backend == GPU) {
             cv::Mat img = preprocess_img(eye_pos->eye_img);
 
-            // copy the image to XDMA
+            // copy the image to XDMA region
             size_t img_size = img.total() * img.elemSize(); 
             std::memcpy((void*) dma_ptr, img.data, img_size);
 
@@ -148,6 +164,12 @@ public:
             std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
         } else if (eye_tracking_backend == NPU) {
+            cv::Mat img = preprocess_img(eye_pos->eye_img);
+            img.convertTo(img, CV_8U);
+
+            // get [1][160][240][1] c array from the cv::Mat
+
+            // call gemmini function to perform inference
 
         }
 
@@ -262,6 +284,7 @@ private:
     const std::shared_ptr<const RelativeClock>                       _m_clock;
 
     switchboard::reader<eye_type>                                    _m_eye_raw;
+    switchboard::writer<eye_position_type>                           _m_eye_pos;
     EYE_BACKEND eye_tracking_backend{CPU}; 
     
     Ort::Env env;
@@ -284,13 +307,13 @@ private:
     uint32_t rx_packets[50];
 };
 
-class eye_tracking_target_plugin : public plugin {
-public:
-    eye_tracking_target_plugin(const std::string& name, phonebook* pb)
-        : plugin{name, pb} {
-        pb->register_impl<eye_tracking_target>(
-            std::static_pointer_cast<eye_tracking_target>(std::make_shared<eye_tracking_target_impl>(pb)));
-    }
-};
+// class eye_tracking_target_plugin : public plugin {
+// public:
+//     eye_tracking_target_plugin(const std::string& name, phonebook* pb)
+//         : plugin{name, pb} {
+//         pb->register_impl<eye_tracking_target>(
+//             std::static_pointer_cast<eye_tracking_target>(std::make_shared<eye_tracking_target_impl>(pb)));
+//     }
+// };
 
-PLUGIN_MAIN(eye_tracking_target_plugin);
+PLUGIN_MAIN(eye_tracking_target);
