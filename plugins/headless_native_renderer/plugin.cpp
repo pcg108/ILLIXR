@@ -69,13 +69,8 @@ public:
 
         switchboard::ptr<const eye_position_type> eye_pos  = _m_eye_pos.get_ro_nullable();
 
-        if (!eye_pos) {
-            // std::cout << "[illixr guest] No eye data" << std::endl;
-            return;
-        }
-
         eye_position_type send_eye_pos = eye_position_type{_m_clock->now(), 0, 0};
-        if ((eye_pos->time - last_eye_pos->time) > std::chrono::milliseconds(10)) {
+        if (eye_pos) {
             last_eye_pos->time = eye_pos->time;
             last_eye_pos->eye_x = eye_pos->eye_x;
             last_eye_pos->eye_y = eye_pos->eye_y;
