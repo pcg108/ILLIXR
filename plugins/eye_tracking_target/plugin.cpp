@@ -16,11 +16,14 @@
 #include <filesystem>
 #include <shared_mutex>
 
+extern "C" {
+    #include "include/ritnet.h"
+}
 
 using namespace ILLIXR;
 
 enum EYE_BACKEND {
-    CPU,
+    CP,
     GPU,
     NPU
 };
@@ -55,7 +58,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
                 }
 
                 if (backend == 0) {
-                    eye_tracking_backend = CPU;
+                    eye_tracking_backend = CP;
                     session = std::make_unique<Ort::Session>(env, model_path.c_str(), session_options);
 
                     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
@@ -90,12 +93,10 @@ class eye_tracking_target_impl : public eye_tracking_target {
             return eye_position_type{_m_clock->now(), 0.0, 0.0};
        }
 
-        float pred_x = eye_pos->eye_x_true;
-        float pred_y = eye_pos->eye_y_true;
+        std::cout << "actual fovea: " << eye_pos->eye_x_true << ", " << eye_pos->eye_y_true << std::endl;
 
-        std::cout << "actual fovea: " << pred_x << ", " << pred_y << std::endl;
-
-        if (eye_tracking_backend == CPU) {
+        float pred_x, pred_y;
+        if (eye_tracking_backend == CP) {
             // preprocess image 
             cv::Mat img = preprocess_img(eye_pos->eye_img);
             const size_t total_elements = width_ * height_;
@@ -107,6 +108,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
             const char* input_names[] = {"x"};
             const char* output_names[] = {"conv2d_41"};
             session->Run(run_options, input_names, input_tensor_.get(), 1, output_names, output_tensor_.get(), 1);
+
 
             get_fovea(pred_x, pred_y);
             std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
@@ -125,14 +127,15 @@ class eye_tracking_target_impl : public eye_tracking_target {
             img.convertTo(img, CV_8U);
 
             // get [1][160][240][1] c array from the cv::Mat
-
+            elem_t (*input_image)[160][240][1] = reinterpret_cast<elem_t (*)[160][240][1]>(img.data);
 
             // call gemmini function to perform inference
+            gemmini_inference((elem_t*) input_image, pred_x, pred_y);
 
         }
 
 
-        return eye_position_type{_m_clock->now(), pred_x, pred_y};
+        return eye_position_type{_m_clock->now(), eye_pos->eye_x_true, eye_pos->eye_y_true};
     }
 
 
@@ -213,7 +216,7 @@ private:
     const std::shared_ptr<gpu_model>                                 gpu;
 
     switchboard::reader<eye_type>                                    _m_eye_raw;
-    EYE_BACKEND eye_tracking_backend{CPU}; 
+    EYE_BACKEND eye_tracking_backend{CP}; 
     
     Ort::Env env;
     Ort::SessionOptions session_options;

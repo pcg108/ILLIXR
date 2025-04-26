@@ -3,6 +3,7 @@
 #ifndef SRC_MAIN_C_GEMMINI_H
 #define SRC_MAIN_C_GEMMINI_H
 
+
 #undef abs
 
 #include <stdint.h>
@@ -12,15 +13,15 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#include "include/gemmini_params.h"
+#include "gemmini_params.h"
 
 #define GEMMINI_ASSERTIONS
 
 // Accelerator interface
-#include "rocc-software/src/xcustom.h"
+#include "xcustom.h"
 
 // Counter Definition
-#include "include/gemmini_counter.h"
+#include "gemmini_counter.h"
 
 #define k_CONFIG 0
 #define k_MVIN2 1
@@ -3586,6 +3587,7 @@ static void tiled_norm_auto(const size_t I, const size_t J,
 }
 
 #undef abs
+
 
 #endif // SRC_MAIN_C_GEMMINI_H
 

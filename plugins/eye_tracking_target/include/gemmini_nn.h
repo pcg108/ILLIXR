@@ -1,14 +1,15 @@
 #ifndef GEMMINI_NN_H
 #define GEMMINI_NN_H
 
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #ifndef BAREMETAL
 #include <sys/mman.h>
 #endif
-#include "include/gemmini.h"
-#include "include/gemmini_testutils.h"
+#include "gemmini.h"
+#include "gemmini_testutils.h"
 
 struct ConvParams {
     int batch_size;

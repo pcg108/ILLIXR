@@ -3,12 +3,9 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <sys/mman.h>
-#include "gemmini.h"
-#include "gemmini_nn.h"
 
-#include "ritnet_params.h"
-#include "ritnet_weights.h"
-#include "ritnet_helpers.h"
+
+#include "include/ritnet.h"
 
 void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
