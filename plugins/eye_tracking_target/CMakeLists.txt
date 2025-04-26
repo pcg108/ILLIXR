@@ -30,7 +30,6 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
     ${Protobuf_INCLUDE_DIRS}
     ${onnxruntime_INCLUDE_DIRS}
     ${ILLIXR_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE 
