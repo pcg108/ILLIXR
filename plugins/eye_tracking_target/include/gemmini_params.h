@@ -4,30 +4,6 @@
 #include <stdint.h>
 #include <limits.h>
 
-struct ConvParams {
-    int batch_size;
-    int in_row_dim;
-    int in_col_dim;
-    int out_row_dim;
-    int out_col_dim;
-    int kernel_size;
-    int in_channels;
-    int out_channels;
-    int in_stride;
-    int weight_stride;
-    int out_stride;
-    int stride;
-    int padding;
-    bool bias;
-    bool depthwise;
-    int n_patches;
-    int patch_size;
-    acc_scale_t output_scale;
-    scale_t res_scale;
-    int pool_size, pool_stride, pool_padding, out_dim_pooled;
-    
-    int I, J, K;
-};
 
 #define XCUSTOM_ACC 3
 #define DIM 16
@@ -54,6 +30,31 @@ typedef uint32_t scale_acc_t_bits;
 
 typedef float acc_scale_t;
 typedef uint32_t acc_scale_t_bits;
+
+struct ConvParams {
+    int batch_size;
+    int in_row_dim;
+    int in_col_dim;
+    int out_row_dim;
+    int out_col_dim;
+    int kernel_size;
+    int in_channels;
+    int out_channels;
+    int in_stride;
+    int weight_stride;
+    int out_stride;
+    int stride;
+    int padding;
+    bool bias;
+    bool depthwise;
+    int n_patches;
+    int patch_size;
+    acc_scale_t output_scale;
+    scale_t res_scale;
+    int pool_size, pool_stride, pool_padding, out_dim_pooled;
+    
+    int I, J, K;
+};
 
 #define row_align(blocks) __attribute__((aligned(blocks*DIM*sizeof(elem_t))))
 #define row_align_acc(blocks) __attribute__((aligned(blocks*DIM*sizeof(acc_t))))
