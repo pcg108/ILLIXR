@@ -3,9 +3,8 @@ set(PLUGIN_NAME plugin.eye_tracking_target${ILLIXR_BUILD_SUFFIX})
 
 find_package(onnxruntime REQUIRED)
 
-add_library(ritnet STATIC
+add_library(ritnet OBJECT
     include/ritnet.c
-    include/ritnet.h
 )
 set_source_files_properties(include/ritnet.c PROPERTIES LANGUAGE C)
 target_include_directories(ritnet PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
