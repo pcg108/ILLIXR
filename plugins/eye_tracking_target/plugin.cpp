@@ -124,7 +124,7 @@ public:
             session->Run(run_options, input_names, input_tensor_.get(), 1, output_names, output_tensor_.get(), 1);
 
             get_fovea(pred_x, pred_y);
-            // std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
+            std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
         } else if (eye_tracking_backend == GPU) {
             cv::Mat img = preprocess_img(eye_pos->eye_img);
 
