@@ -71,13 +71,16 @@ public:
 
         eye_position_type send_eye_pos = eye_position_type{_m_clock->now(), 0, 0};
         if (eye_pos) {
-            last_eye_pos->time = eye_pos->time;
-            last_eye_pos->eye_x = eye_pos->eye_x;
-            last_eye_pos->eye_y = eye_pos->eye_y;
-            std::cout << "[illixr guest] new eye_pos: " << last_eye_pos->eye_x << ", " << last_eye_pos->eye_y << std::endl;
 
-            // if we have gotten an updated eye position, use that. Otherwise don't send one (0s) so there is no foveation
-            send_eye_pos = *last_eye_pos;
+            if (last_eye_pos->eye_x != eye_pos->eye_x || last_eye_pos->eye_y != eye_pos->eye_y) {
+                last_eye_pos->time = eye_pos->time;
+                last_eye_pos->eye_x = eye_pos->eye_x;
+                last_eye_pos->eye_y = eye_pos->eye_y;
+                std::cout << "[illixr guest] new eye_pos: " << last_eye_pos->eye_x << ", " << last_eye_pos->eye_y << std::endl;
+
+                // if we have gotten an updated eye position, use that. Otherwise don't send one (0s) so there is no foveation
+                send_eye_pos = *last_eye_pos;
+            }
         }
         
 

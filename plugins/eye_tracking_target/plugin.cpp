@@ -64,15 +64,6 @@ public:
                                                 input_shape_.data(), input_shape_.size()));
                 output_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(),
                                                 output_shape_.data(), output_shape_.size()));
-                
-                // Initialize the lookup table for gamma correction
-                lut = cv::Mat(256, 1, CV_8UC1);
-                double gamma = 0.8; 
-                for (int i = 0; i < 256; ++i) {
-                    lut.at<uchar>(i) = cv::saturate_cast<uchar>(255.0 * std::pow(i / 255.0, gamma));
-                }
-
-                clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
             } else if (backend == 1) {
                 eye_tracking_backend = GPU;
             } else if (backend == 2) {
@@ -80,6 +71,15 @@ public:
             } else {
                 std::cout << "[illixr guest] Invalid value for ILLIXR_EYE_TRACKING. Defaulting to CPU." << std::endl;
             }
+
+            // Initialize the lookup table for gamma correction
+            lut = cv::Mat(256, 1, CV_8UC1);
+            double gamma = 0.8; 
+            for (int i = 0; i < 256; ++i) {
+                lut.at<uchar>(i) = cv::saturate_cast<uchar>(255.0 * std::pow(i / 255.0, gamma));
+            }
+
+            clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
         }
 
     void _p_thread_setup() override {
