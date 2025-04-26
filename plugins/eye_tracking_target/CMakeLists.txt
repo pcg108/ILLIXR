@@ -3,21 +3,6 @@ set(PLUGIN_NAME plugin.eye_tracking_target${ILLIXR_BUILD_SUFFIX})
 
 find_package(onnxruntime REQUIRED)
 
-# Create interface library for C headers
-add_library(ritnet_c_headers INTERFACE)
-target_include_directories(ritnet_c_headers INTERFACE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-# Compile C code as static library
-add_library(ritnet_c STATIC
-    include/ritnet.h
-    ritnet.c
-)
-target_include_directories(ritnet_c PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-set_source_files_properties(ritnet.c PROPERTIES LANGUAGE C)
 
 # Main plugin target
 add_library(${PLUGIN_NAME} SHARED 
@@ -45,21 +30,14 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
     ${OpenCV_INCLUDE_DIRS}
     ${ILLIXR_SOURCE_DIR}/include
     ${Eigen3_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_link_libraries(${PLUGIN_NAME}
-    ritnet_c
-    ritnet_c_headers
     ${OpenCV_LIBRARIES}
     ${Eigen3_LIBRARIES}
     ${onnxruntime_LIBRARIES}
     spdlog::spdlog
-)
-
-# Handle C/C++ compatibility
-target_compile_options(${PLUGIN_NAME} PRIVATE 
-    -Wno-c11-extensions          # For C11 features in C++
-    -Wno-vla-extension           # For VLA in headers
 )
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
