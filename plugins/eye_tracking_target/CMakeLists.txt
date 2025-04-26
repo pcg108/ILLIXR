@@ -1,5 +1,8 @@
 set(PLUGIN_NAME plugin.eye_tracking_target${ILLIXR_BUILD_SUFFIX})
 
+
+find_package(onnxruntime REQUIRED)
+
 # Create interface library for C headers
 add_library(ritnet_c_headers INTERFACE)
 target_include_directories(ritnet_c_headers INTERFACE 
