@@ -3,6 +3,12 @@ set(PLUGIN_NAME plugin.eye_tracking_target${ILLIXR_BUILD_SUFFIX})
 
 find_package(onnxruntime REQUIRED)
 
+add_library(ritnet STATIC
+    include/ritnet.c
+    include/ritnet.h
+)
+set_source_files_properties(include/ritnet.c PROPERTIES LANGUAGE C)
+target_include_directories(ritnet PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Main plugin target
 add_library(${PLUGIN_NAME} SHARED 
@@ -24,20 +30,22 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
     ${Protobuf_INCLUDE_DIRS}
     ${onnxruntime_INCLUDE_DIRS}
     ${ILLIXR_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE 
     ${OpenCV_INCLUDE_DIRS}
     ${ILLIXR_SOURCE_DIR}/include
     ${Eigen3_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
 
 target_link_libraries(${PLUGIN_NAME}
     ${OpenCV_LIBRARIES}
     ${Eigen3_LIBRARIES}
     ${onnxruntime_LIBRARIES}
     spdlog::spdlog
+    ritnet
 )
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)

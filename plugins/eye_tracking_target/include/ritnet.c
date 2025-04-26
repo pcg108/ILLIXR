@@ -5,7 +5,7 @@
 #include <sys/mman.h>
 
 
-#include "include/ritnet.h"
+#include "ritnet.h"
 
 void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
