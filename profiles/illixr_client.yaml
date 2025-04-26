@@ -1,5 +1,5 @@
 # This file was auto generated, take caution if manually editing.
-plugins: offline_imu,offline_cam,offline_eye,gtsam_integrator,pose_prediction,eye_tracking_target,headless_native_renderer
+plugins: offline_imu,offline_cam,offline_eye,gtsam_integrator,pose_prediction,gpu_model,eye_tracking_target,headless_native_renderer
 build_flags: -DILLIXR_VULKAN
 build_type: Release
 visualizers: openvins

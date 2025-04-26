@@ -13,7 +13,6 @@ add_library(${PLUGIN_NAME} SHARED plugin.cpp
         ../../include/illixr/opencv_data_types.hpp
         ../../include/illixr/data_format.hpp
         ../../include/illixr/phonebook.hpp
-        ../../include/illixr/eye_tracking.hpp
         )
 
 if(BUILD_OPENCV)
