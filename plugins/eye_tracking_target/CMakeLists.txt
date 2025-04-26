@@ -26,7 +26,7 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
         ${onnxruntime_INCLUDE_DIRS}
         ${ILLIXR_SOURCE_DIR}/include)
 
-target_include_directories(${PLUGIN_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include ${Eigen3_INCLUDE_DIRS})
+target_include_directories(${PLUGIN_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include ${Eigen3_INCLUDE_DIRS} $(CMAKE_CURRENT_SOURCE_DIR)/include)
 target_link_libraries(${PLUGIN_NAME} 
         ${OpenCV_LIBRARIES}
         ${Eigen3_LIBRARIES} 

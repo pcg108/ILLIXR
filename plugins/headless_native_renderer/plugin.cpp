@@ -15,6 +15,7 @@
 #include "illixr/phonebook.hpp"
 #include "illixr/pose_prediction.hpp"
 #include "illixr/gpu_model.hpp"
+#include "illixr/eye_tracking_target.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
 #include "illixr/vk_util/headless_sink.hpp"
@@ -43,7 +44,7 @@ public:
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , gpu{pb->lookup_impl<gpu_model>()}
-        , _m_eye_pos{sb->get_reader<eye_position_type>("eye_pos")} 
+        , et{pb->lookup_impl<eye_tracking_target>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
         , mtp_logger{record_logger_} {
@@ -59,7 +60,6 @@ public:
      */
     void _p_thread_setup() override {
 
-        last_eye_pos = std::make_unique<eye_position_type>(eye_position_type{_m_clock->now(), 0.0, 0.0});
     }
 
     /**
@@ -67,22 +67,7 @@ public:
      */
     void _p_one_iteration() override {
 
-        switchboard::ptr<const eye_position_type> eye_pos  = _m_eye_pos.get_ro_nullable();
-
-        eye_position_type send_eye_pos = eye_position_type{_m_clock->now(), 0, 0};
-        if (eye_pos) {
-
-            if (last_eye_pos->eye_x != eye_pos->eye_x || last_eye_pos->eye_y != eye_pos->eye_y) {
-                last_eye_pos->time = eye_pos->time;
-                last_eye_pos->eye_x = eye_pos->eye_x;
-                last_eye_pos->eye_y = eye_pos->eye_y;
-                std::cout << "[illixr guest] new eye_pos: " << last_eye_pos->eye_x << ", " << last_eye_pos->eye_y << std::endl;
-
-                // if we have gotten an updated eye position, use that. Otherwise don't send one (0s) so there is no foveation
-                send_eye_pos = *last_eye_pos;
-            }
-        }
-        
+        eye_position_type send_eye_pos  = et->get_eye_position();
 
         uint64_t before_render_pose = rdcycle();
 
@@ -132,13 +117,11 @@ private:
     }
 
     
-    const std::shared_ptr<switchboard>         sb;
-    const std::shared_ptr<pose_prediction>     pp;
-    const std::shared_ptr<gpu_model>           gpu;
+    const std::shared_ptr<switchboard>          sb;
+    const std::shared_ptr<pose_prediction>      pp;
+    const std::shared_ptr<gpu_model>            gpu;
+    const std::shared_ptr<eye_tracking_target>  et;
     const std::shared_ptr<const RelativeClock> _m_clock;
-
-    switchboard::reader<eye_position_type>  _m_eye_pos;
-    std::shared_ptr<eye_position_type> last_eye_pos;
 
 
     int        fps{};

@@ -5,6 +5,7 @@
 #include "illixr/gpu_model.hpp"
 #include "illixr/threadloop.hpp"
 #include "illixr/switchboard.hpp"
+#include "illixr/eye_tracking_target.hpp"
 
 #include <onnxruntime_cxx_api.h>
 #include <opencv2/opencv.hpp>  
@@ -26,75 +27,59 @@ enum EYE_BACKEND {
 static constexpr const int width_ = 160;
 static constexpr const int height_ = 240;
 
-class eye_tracking_target : public threadloop {
-public:
-    eye_tracking_target(const std::string& name_, phonebook* const pb)
-        : threadloop{name_, pb}
-        , sb{pb->lookup_impl<switchboard>()}
-        , gpu{pb->lookup_impl<gpu_model>()}
-        , _m_clock{pb->lookup_impl<RelativeClock>()}
-        , _m_eye_raw{sb->get_reader<eye_type>("eye_raw")} 
-        , _m_eye_pos{sb->get_writer<eye_position_type>("eye_pos")} 
-        { 
-            env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "ILLIXR_EyeTracking");
-            session_options = Ort::SessionOptions();
-            session_options.SetIntraOpNumThreads(1);
-            session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+class eye_tracking_target_impl : public eye_tracking_target {
+    public:
+        explicit eye_tracking_target_impl(const phonebook* const pb)
+            : sb{pb->lookup_impl<switchboard>()}
+            , gpu{pb->lookup_impl<gpu_model>()}
+            , _m_clock{pb->lookup_impl<RelativeClock>()}
+            , _m_eye_raw{sb->get_reader<eye_type>("eye_raw")} 
+            { 
+                env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "ILLIXR_EyeTracking");
+                session_options = Ort::SessionOptions();
+                session_options.SetIntraOpNumThreads(1);
+                session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
 
-            std::string model_path = std::getenv("ILLIXR_EYE_MODEL");   
-            if (model_path.empty()) {
-                throw std::runtime_error("Model path is not set. Please set the ILLIXR_EYE_MODEL environment variable.");
+                std::string model_path = std::getenv("ILLIXR_EYE_MODEL");   
+                if (model_path.empty()) {
+                    throw std::runtime_error("Model path is not set. Please set the ILLIXR_EYE_MODEL environment variable.");
+                }
+
+                int backend = 0;
+                const char* eye_tracking_env = std::getenv("ILLIXR_EYE_TRACKING");
+                if (eye_tracking_env == nullptr) {
+                    std::cout << "[illixr guest] ILLIXR_EYE_TRACKING not set. Defaulting to CPU." << std::endl;
+                } else {
+                    backend = std::stoi(eye_tracking_env);
+                    std::cout << "[illixr guest] ILLIXR_EYE_TRACKING: " << eye_tracking_env << std::endl;
+                }
+
+                if (backend == 0) {
+                    eye_tracking_backend = CPU;
+                    session = std::make_unique<Ort::Session>(env, model_path.c_str(), session_options);
+
+                    auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+                    input_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, input_image_.data(), input_image_.size(),
+                                                    input_shape_.data(), input_shape_.size()));
+                    output_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(),
+                                                    output_shape_.data(), output_shape_.size()));
+                } else if (backend == 1) {
+                    eye_tracking_backend = GPU;
+                } else if (backend == 2) {
+                    eye_tracking_backend = NPU;
+                } else {
+                    std::cout << "[illixr guest] Invalid value for ILLIXR_EYE_TRACKING. Defaulting to CPU." << std::endl;
+                }
+
+                // Initialize the lookup table for gamma correction
+                lut = cv::Mat(256, 1, CV_8UC1);
+                double gamma = 0.8; 
+                for (int i = 0; i < 256; ++i) {
+                    lut.at<uchar>(i) = cv::saturate_cast<uchar>(255.0 * std::pow(i / 255.0, gamma));
+                }
+
+                clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
             }
-
-            int backend = 0;
-            const char* eye_tracking_env = std::getenv("ILLIXR_EYE_TRACKING");
-            if (eye_tracking_env == nullptr) {
-                std::cout << "[illixr guest] ILLIXR_EYE_TRACKING not set. Defaulting to CPU." << std::endl;
-            } else {
-                backend = std::stoi(eye_tracking_env);
-                std::cout << "[illixr guest] ILLIXR_EYE_TRACKING: " << eye_tracking_env << std::endl;
-            }
-
-            if (backend == 0) {
-                eye_tracking_backend = CPU;
-                session = std::make_unique<Ort::Session>(env, model_path.c_str(), session_options);
-
-                auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-                input_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, input_image_.data(), input_image_.size(),
-                                                input_shape_.data(), input_shape_.size()));
-                output_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(),
-                                                output_shape_.data(), output_shape_.size()));
-            } else if (backend == 1) {
-                eye_tracking_backend = GPU;
-            } else if (backend == 2) {
-                eye_tracking_backend = NPU;
-            } else {
-                std::cout << "[illixr guest] Invalid value for ILLIXR_EYE_TRACKING. Defaulting to CPU." << std::endl;
-            }
-
-            // Initialize the lookup table for gamma correction
-            lut = cv::Mat(256, 1, CV_8UC1);
-            double gamma = 0.8; 
-            for (int i = 0; i < 256; ++i) {
-                lut.at<uchar>(i) = cv::saturate_cast<uchar>(255.0 * std::pow(i / 255.0, gamma));
-            }
-
-            clahe = cv::createCLAHE(1.5, cv::Size(8, 8));
-        }
-
-    void _p_thread_setup() override {
-
-        
-    }
-
-    void _p_one_iteration() override {
-        eye_position_type eye_p = get_eye_position();
-        _m_eye_pos.put(_m_eye_pos.allocate<eye_position_type>(eye_position_type{
-            eye_p.time,
-            eye_p.eye_x,
-            eye_p.eye_y
-        }));
-    }
 
 
     eye_position_type get_eye_position()  {
@@ -228,7 +213,6 @@ private:
     const std::shared_ptr<gpu_model>                                 gpu;
 
     switchboard::reader<eye_type>                                    _m_eye_raw;
-    switchboard::writer<eye_position_type>                           _m_eye_pos;
     EYE_BACKEND eye_tracking_backend{CPU}; 
     
     Ort::Env env;
@@ -248,4 +232,13 @@ private:
 };
 
 
-PLUGIN_MAIN(eye_tracking_target);
+class eye_tracking_target_plugin : public plugin {
+    public:
+        eye_tracking_target_plugin(const std::string& name, phonebook* pb)
+            : plugin{name, pb} {
+            pb->register_impl<eye_tracking_target>(
+                std::static_pointer_cast<eye_tracking_target>(std::make_shared<eye_tracking_target_impl>(pb)));
+        }
+    };
+    
+PLUGIN_MAIN(eye_tracking_target_plugin);

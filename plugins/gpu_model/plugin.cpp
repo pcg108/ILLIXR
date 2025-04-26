@@ -104,14 +104,14 @@ private:
     }
 
     long int read_delay_time() {
-        // return 0;
+        return 0;
         // look for one packet containing the amount of time to delay in ns
         while ((reg_read8(GRAPHICS_STATUS) & 0x1) == 0) ;
         return (long int) reg_read32(GRAPHICS_OUT);
     }
 
     void send_packets(uint32_t* packets, int len) {
-        // return;
+        return;
         std::unique_lock lock{bridge_mutex};
 
         // std::cout << "[illixr guest] sending packets: " << std::endl;;
