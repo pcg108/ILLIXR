@@ -16,9 +16,9 @@
 #include <filesystem>
 #include <shared_mutex>
 
-// extern "C" {
-//     #include "include/ritnet.h"
-// }
+extern "C" {
+    #include "include/ritnet.h"
+}
 
 using namespace ILLIXR;
 
