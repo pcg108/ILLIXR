@@ -64,7 +64,7 @@ public:
         tx_packets[1] = 0x00000000; // dummy packet because bridge driver needs at least 2 packets
 
         std::cout << "[illixr guest] sending compute message" << std::endl;
-        send_packets(tx_packets, 1);
+        send_packets(tx_packets, 2);
 
         long int delay_ns = read_delay_time();
 
