@@ -340,6 +340,16 @@ static void counter_reset() {
   gemmini_counter_access(placeholder, config_reg);
 }
 
+static uint64_t read_cycles() {
+  uint64_t cycles;
+  asm volatile ("rdcycle %0" : "=r" (cycles));
+  return cycles;
+
+  // const uint32_t * mtime = (uint32_t *)(33554432 + 0xbff8);
+  // const uint32_t * mtime = (uint32_t *)(33554432 + 0xbffc);
+  // return *mtime;
+}
+
 int ceil_divide_int(int a, int b){
     int c = (a % b == 0) ? ((int)(a/b)) :(((int)(a/b)) + 1); 
     if(a < b) c = 1;
