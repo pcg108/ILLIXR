@@ -54,7 +54,6 @@ private:
                 .require_api_version(1, 2)
                 .request_validation_layers()
                 .enable_validation_layers()
-                // .enable_extension(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME)
                 .set_debug_callback([](VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
                                        VkDebugUtilsMessageTypeFlagsEXT             messageType,
                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
@@ -72,9 +71,18 @@ private:
 
         vkb::PhysicalDeviceSelector selector{vkb_instance};
 
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR shadingRateFeatures = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR,
+            .pNext = nullptr,
+            .pipelineFragmentShadingRate = VK_TRUE,
+            .attachmentFragmentShadingRate = VK_TRUE
+        };
+
+
         auto physical_device_ret = selector.set_minimum_version(1, 2)
                                        .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
-                                       // .add_required_extension(VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME)
+                                       .add_required_extension(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME)
+                                       .add_required_extension_features(shadingRateFeatures)
                                        .select();
 
         if (!physical_device_ret) {

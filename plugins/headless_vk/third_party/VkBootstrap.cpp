@@ -1661,6 +1661,7 @@ Result<Device> DeviceBuilder::build() const {
     if (physical_device.surface != VK_NULL_HANDLE || physical_device.defer_surface_initialization)
         extensions.push_back({VK_KHR_SWAPCHAIN_EXTENSION_NAME});
 
+
     std::vector<VkBaseOutStructure*> final_pnext_chain;
     VkDeviceCreateInfo               device_create_info = {};
 
@@ -1711,14 +1712,6 @@ Result<Device> DeviceBuilder::build() const {
     device_create_info.pQueueCreateInfos       = queueCreateInfos.data();
     device_create_info.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
     device_create_info.ppEnabledExtensionNames = extensions.data();
-
-    // added to support fragment density map
-    // VkPhysicalDeviceFragmentDensityMapFeaturesEXT density_features = {};
-    // density_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT;
-    // density_features.fragmentDensityMap = VK_TRUE;
-    // density_features.fragmentDensityMapDynamic = VK_TRUE;
-    // density_features.fragmentDensityMapNonSubsampledImages = VK_TRUE;
-    // device_create_info.pNext = &density_features;
 
     Device device;
 
