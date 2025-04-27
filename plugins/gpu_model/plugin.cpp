@@ -60,7 +60,9 @@ public:
     }
 
     void send_gpu_compute_message(int queue_id, int read_dma_bytes) {
-        tx_packets[0] = make_start_packet(queue_id, 0, read_dma_bytes);
+        tx_packets[0] = make_start_packet(queue_id, 1, read_dma_bytes);
+        tx_packets[1] = 0x00000000; // dummy packet because bridge driver needs at least 2 packets
+
         std::cout << "[illixr guest] sending compute message" << std::endl;
         send_packets(tx_packets, 1);
 
