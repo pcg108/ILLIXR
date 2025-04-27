@@ -54,6 +54,7 @@ private:
                 .require_api_version(1, 2)
                 .request_validation_layers()
                 .enable_validation_layers()
+                // .enable_extension(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME)
                 .set_debug_callback([](VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
                                        VkDebugUtilsMessageTypeFlagsEXT             messageType,
                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {

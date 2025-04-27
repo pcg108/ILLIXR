@@ -81,6 +81,7 @@ public:
         timewarp_command_buffer = vulkan_utils::create_command_buffer(hs->vk_device, command_pool);
         create_sync_objects();
         create_query_pool();
+        // create_density_map();
         create_app_pass();
         create_timewarp_pass();
         create_sync_objects();
@@ -195,6 +196,8 @@ public:
                     if (fds[i].revents & (POLLIN | POLLHUP)) {
                         // Read data from guest
                         ssize_t bytes_read = recv(fds[i].fd, socket_buffer, BUFFER_SIZE, 0);
+
+                        std::cout << bytes_read << std::endl;
                         
                         if (bytes_read <= 0) {
                             // Connection closed or error
@@ -206,14 +209,18 @@ public:
                             uint32_t socket_data[15];
                             std::memcpy(socket_data, socket_buffer, bytes_read);
 
+                            // float* float_data = reinterpret_cast<float*>(socket_data);
+                            
+
                             std::cout << "[ILLIXR host server] Received from bridge: ";
-                            for (size_t i = 0; i < 9; ++i) {
+                            for (size_t i = 0; i < 11; ++i) {
                                 std::cout << socket_data[i] << " ";
                             }
                             std::cout << std::endl;
 
-                            int queue_id = socket_data[0];
-                            int dma_read = socket_data[1];
+                            int queue_id = (int) socket_data[0];
+                            int dma_read = (int) socket_data[1];
+                            std::cout << "[ILLIXR host server] Received queue ID: " << queue_id << std::endl;
 
                             double time_taken = 0;   
                             double bytes_written = 0;                         
@@ -221,6 +228,7 @@ public:
                             VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
 
                             if (queue_id == 0) {
+                                std::cout << "hello" << std::endl;
 
                                 auto t = time_point();
                                 Eigen::Vector3f v(socket_data[2], socket_data[3], socket_data[4]);
@@ -260,6 +268,7 @@ public:
                                 time_taken = get_timestamp(appQueryPool);
 
                             } else if (queue_id == 1) {
+                                std::cout << "hi" << std::endl;
 
                                 auto t = time_point();
                                 Eigen::Vector3f v(socket_data[2], socket_data[3], socket_data[4]);
@@ -294,11 +303,13 @@ public:
                                 bytes_written = save_frame();
 
                             } else if (queue_id == 2) {
+                                std::cout << "there" << std::endl;
 
-                                if (dma_read == 0) {
-                                    std::cout << "[ILLIXR host server] Error: received eye tracking request but no XMDA read" << std::endl;
-                                }
+                                // if (dma_read == 0) {
+                                //     std::cout << "[ILLIXR host server] Error: received eye tracking request but no XMDA read" << std::endl;
+                                // }
 
+                                dma_read = 153600;
                                 int rc = pread(xdma_c2hfd, input_image_.data(), dma_read, target_dram_addr);
                                 if (rc != dma_read) {
                                     std::cout << "[ILLIXR host server] Error: read bytes " << rc << " expected " << dma_read << std::endl;
@@ -917,6 +928,54 @@ private:
         }
     }
 
+    void create_density_map() {
+
+        // create density map image
+        VkImageCreateInfo imageInfo = {};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.format = VK_FORMAT_R8G8_UNORM; // common format for density maps
+        imageInfo.extent = { 32, 18, 1 };
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.usage = VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; 
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        vkCreateImage(hs->vk_device, &imageInfo, nullptr, &densityMapImage);
+
+
+        // create and bind density map image memory 
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(hs->vk_device, densityMapImage, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,
+                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        
+        vkAllocateMemory(hs->vk_device, &allocInfo, nullptr, &densityMapMemory);
+        vkBindImageMemory(hs->vk_device, densityMapImage, densityMapMemory, 0);
+
+        VkImageViewCreateInfo viewInfo = {};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.flags = VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DYNAMIC_BIT_EXT,
+        viewInfo.image = densityMapImage;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        viewInfo.format = VK_FORMAT_R8G8_UNORM;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+        
+        vkCreateImageView(hs->vk_device, &viewInfo, nullptr, &densityMapImageView);
+    }
+
     /**
      * @brief Creates a render pass for the application.
      *
@@ -1104,6 +1163,10 @@ private:
     VkSemaphore timewarp_render_finished_semaphore{};
     VkFence     frame_fence{};
     VkFence     copy_frame_fence{};
+
+    VkImage densityMapImage;
+    VkDeviceMemory densityMapMemory;
+    VkImageView densityMapImageView;
 
     uint64_t timeline_semaphore_value = 1;
 

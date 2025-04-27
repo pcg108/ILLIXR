@@ -1712,6 +1712,14 @@ Result<Device> DeviceBuilder::build() const {
     device_create_info.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
     device_create_info.ppEnabledExtensionNames = extensions.data();
 
+    // added to support fragment density map
+    // VkPhysicalDeviceFragmentDensityMapFeaturesEXT density_features = {};
+    // density_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT;
+    // density_features.fragmentDensityMap = VK_TRUE;
+    // density_features.fragmentDensityMapDynamic = VK_TRUE;
+    // density_features.fragmentDensityMapNonSubsampledImages = VK_TRUE;
+    // device_create_info.pNext = &density_features;
+
     Device device;
 
     VkResult res = detail::vulkan_functions().fp_vkCreateDevice(physical_device.physical_device, &device_create_info,
