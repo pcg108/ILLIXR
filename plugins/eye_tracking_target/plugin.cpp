@@ -27,8 +27,8 @@ enum EYE_BACKEND {
     GPU,
     NPU
 };
-static constexpr const int width_ = 160;
-static constexpr const int height_ = 240;
+static constexpr const int width_ = 240;
+static constexpr const int height_ = 160;
 
 class eye_tracking_target_impl : public eye_tracking_target {
     public:
@@ -103,15 +103,17 @@ class eye_tracking_target_impl : public eye_tracking_target {
             if (img.total() != total_elements) {
                 throw std::runtime_error("Dimension mismatch between img_scaled and input_image_");
             }
-            std::memcpy(input_image_.data(), img.ptr<float>(), total_elements * sizeof(float));
+            // std::memcpy(input_image_.data(), img.ptr<float>(), total_elements * sizeof(float));
 
-            const char* input_names[] = {"x"};
-            const char* output_names[] = {"conv2d_41"};
-            session->Run(run_options, input_names, input_tensor_.get(), 1, output_names, output_tensor_.get(), 1);
+            // const char* input_names[] = {"x"};
+            // const char* output_names[] = {"conv2d_41"};
+            // session->Run(run_options, input_names, input_tensor_.get(), 1, output_names, output_tensor_.get(), 1);
 
+            // get_fovea(pred_x, pred_y);
+            // std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
 
-            get_fovea(pred_x, pred_y);
-            std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
+            return eye_position_type{_m_clock->now(), 0.0, 0.0}; // don't do eye tracking for CPU, just return 0
+
         } else if (eye_tracking_backend == GPU) {
             cv::Mat img = preprocess_img(eye_pos->eye_img);
 
