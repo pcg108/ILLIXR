@@ -19,7 +19,7 @@ while True:
         
         # render
         float_values = np.concatenate((np.array([0, 0], dtype=np.float32), np.array(fixed_pose, dtype=np.float32), np.array(fovea_position, dtype=np.float32)))
-        print(float_values)
+        # print(float_values)
         data = float_values.tobytes()
 
         sample_conn.sendall(data)
@@ -29,7 +29,7 @@ while True:
 
         # timewarp
         float_values = np.concatenate((np.array([1, 0], dtype=np.float32), np.array(fixed_pose, dtype=np.float32), np.array(fovea_position, dtype=np.float32)))
-        print(float_values)
+        # print(float_values)
         data = float_values.tobytes()
 
         sample_conn.sendall(data)

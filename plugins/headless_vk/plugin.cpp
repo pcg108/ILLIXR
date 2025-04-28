@@ -78,7 +78,6 @@ private:
             .attachmentFragmentShadingRate = VK_TRUE
         };
 
-
         auto physical_device_ret = selector.set_minimum_version(1, 2)
                                        .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
                                        .add_required_extension(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME)
