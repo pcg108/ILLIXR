@@ -113,7 +113,7 @@ private:
 
     static inline uint64_t rdcycle() {
         uint64_t cycles;
-        // asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
+        asm volatile ("rdcycle %0" : "=r" (cycles)); // Read cycle counter
         return cycles;
     }
 
