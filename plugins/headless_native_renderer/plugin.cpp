@@ -93,7 +93,7 @@ public:
 
         uint64_t after_tw = rdcycle();
 
-        // std::cout << "MTP: " << duration2double<std::milli>(_m_clock->now() - timewarp_pose.sensor_time) << std::endl;
+        std::cout << "MTP: " << duration2double<std::milli>(_m_clock->now() - timewarp_pose.sensor_time) << std::endl;
 
         mtp_logger.log(record{mtp_record,
             {

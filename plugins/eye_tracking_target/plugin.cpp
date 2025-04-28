@@ -27,8 +27,8 @@ enum EYE_BACKEND {
     GPU,
     NPU
 };
-static constexpr const int width_ = 240;
-static constexpr const int height_ = 160;
+static constexpr const int width_ = 160;
+static constexpr const int height_ = 240;
 
 class eye_tracking_target_impl : public eye_tracking_target {
     public:
@@ -93,7 +93,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
             return eye_position_type{_m_clock->now(), 0.0, 0.0};
        }
 
-        std::cout << "actual fovea: " << eye_pos->eye_x_true << ", " << eye_pos->eye_y_true << std::endl;
+        // std::cout << "actual fovea: " << eye_pos->eye_x_true << ", " << eye_pos->eye_y_true << std::endl;
 
         float pred_x, pred_y;
         if (eye_tracking_backend == CP) {
@@ -131,7 +131,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
             // get [1][160][240][1] c array from the cv::Mat
             elem_t (*input_image)[160][240][1] = reinterpret_cast<elem_t (*)[160][240][1]>(img.data);
 
-            std::cout << "Gemmini inference" << std::endl;
+            // std::cout << "Gemmini inference" << std::endl;
             // call gemmini function to perform inference
             gemmini_inference((elem_t*) input_image, pred_x, pred_y);
 

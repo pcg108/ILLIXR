@@ -54,7 +54,7 @@ public:
 
         long int delay_ns = read_delay_time();
 
-        std::cout << "[illixr guest] render delaying for: " << delay_ns << std::endl;
+        // std::cout << "[illixr guest] render delaying for: " << delay_ns << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
 
     }
@@ -63,12 +63,12 @@ public:
         tx_packets[0] = make_start_packet(queue_id, 1, read_dma_bytes);
         tx_packets[1] = 0x00000000; // dummy packet because bridge driver needs at least 2 packets
 
-        std::cout << "[illixr guest] sending compute message: " << queue_id << std::endl;
+        // std::cout << "[illixr guest] sending compute message: " << queue_id << std::endl;
         send_packets(tx_packets, 2);
 
         long int delay_ns = read_delay_time();
 
-        std::cout << "[illixr guest] compute delaying for: " << delay_ns << std::endl;
+        // std::cout << "[illixr guest] compute delaying for: " << delay_ns << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
     }
 
@@ -117,13 +117,13 @@ private:
         // return;
         std::unique_lock lock{bridge_mutex};
 
-        std::cout << "[illixr guest] sending packets: " << std::endl;;
+        // std::cout << "[illixr guest] sending packets: " << std::endl;;
         for (int i = 0; i < len; i++) {
             std::cout << "   " << packets[i] << std::endl;
             while ((reg_read8(GRAPHICS_STATUS) & 0x2) == 0) ;
             reg_write32(GRAPHICS_IN, packets[i]);
         }
-        std::cout << "[illixr guest] finished sending packets" << std::endl;
+        // std::cout << "[illixr guest] finished sending packets" << std::endl;
     }
 
 
