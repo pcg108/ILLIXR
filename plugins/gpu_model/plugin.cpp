@@ -69,7 +69,7 @@ public:
         // std::cout << "[illixr guest] sending compute message: " << queue_id << std::endl;
         send_packets(tx_packets, 2);
 
-        for (int i = 0; i < num_response_expected) {
+        for (int i = 0; i < num_response_expected; i++) {
             response_buffer[i] = read_packet();
             std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
