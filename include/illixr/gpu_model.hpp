@@ -8,8 +8,8 @@ using namespace ILLIXR;
 
 class gpu_model : public phonebook::service {
 public:
-    [[nodiscard]] virtual void     send_gpu_render_message(fast_pose_type current_pose, eye_position_type eye_pos, int queue_id, int read_dma_bytes)  = 0;
-    [[nodiscard]] virtual void     send_gpu_compute_message(int queue_id, int read_dma_bytes)                                                         = 0;
+    [[nodiscard]] virtual void     send_gpu_render_message(fast_pose_type current_pose, eye_position_type eye_pos, int queue_id, int read_dma_bytes, int num_response_expected, uint32_t* response_buffer)  = 0;
+    [[nodiscard]] virtual void     send_gpu_compute_message(int queue_id, int read_dma_bytes, int num_response_expected, uint32_t* response_buffer)                                                         = 0;
     [[nodiscard]] virtual void     copy_to_dma(void* data, int bytes)                                                                                 = 0;
 
     ~gpu_model() override = default;
