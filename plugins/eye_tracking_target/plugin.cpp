@@ -27,8 +27,8 @@ enum EYE_BACKEND {
     GPU,
     NPU
 };
-static constexpr const int width_ = 160;
-static constexpr const int height_ = 240;
+static constexpr const int width_ = 240;
+static constexpr const int height_ = 160;
 
 class eye_tracking_target_impl : public eye_tracking_target {
     public:
@@ -240,8 +240,8 @@ void print_first_20_rows(const cv::Mat& mat) {
     std::unique_ptr<Ort::Value> output_tensor_;
     std::unique_ptr<Ort::Session> session;
 
-    std::array<int64_t, 4> input_shape_{1, 1, width_, height_};
-    std::array<int64_t, 4> output_shape_{1, 4, width_, height_};
+    std::array<int64_t, 4> input_shape_{1, 1, height_, width_};
+    std::array<int64_t, 4> output_shape_{1, 4, height_, width_};
     std::array<float, width_ * height_> input_image_{};
     std::array<float, 4 * width_ * height_> results_{};
 
