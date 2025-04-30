@@ -67,6 +67,8 @@ public:
      */
     void _p_one_iteration() override {
 
+        uint32_t response_buffer[5];
+
         eye_position_type send_eye_pos  = et->get_eye_position();
 
         uint64_t before_render_pose = rdcycle();
@@ -77,7 +79,7 @@ public:
 
         uint64_t before_render = rdcycle();
 
-            gpu->send_gpu_render_message(render_pose, send_eye_pos, 0, 0);
+            gpu->send_gpu_render_message(render_pose, send_eye_pos, 0, 0, 1, response_buffer);
 
         uint64_t after_render = rdcycle();
 
@@ -89,7 +91,7 @@ public:
 
         uint64_t before_tw = rdcycle();
 
-            gpu->send_gpu_render_message(timewarp_pose, send_eye_pos, 1, 0);
+            gpu->send_gpu_render_message(timewarp_pose, send_eye_pos, 1, 0, 2, response_buffer);
 
         uint64_t after_tw = rdcycle();
 

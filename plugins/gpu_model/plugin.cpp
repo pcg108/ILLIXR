@@ -41,7 +41,7 @@ public:
 
     }
 
-    void send_gpu_render_message(fast_pose_type current_pose, eye_position_type eye_pos, int queue_id, int read_dma_bytes) {
+    void send_gpu_render_message(fast_pose_type current_pose, eye_position_type eye_pos, int queue_id, int read_dma_bytes, int num_response_expected, uint32_t* response_buffer) {
         // std::cout << "[illixr guest] sending gpu message" << std::endl;
 
         tx_packets[0] = make_start_packet(queue_id, 9, read_dma_bytes);
@@ -52,24 +52,30 @@ public:
         // bridge will pause target execution while render is occurring
         send_packets(tx_packets, 10); // start packet, 7 pose packets, 2 eye packets
 
-        long int delay_ns = read_delay_time();
+        for (int i = 0; i < num_response_expected) {
+            response_buffer[i] = read_packet();
+            std::cout << " gpu model received: " << response_buffer[i] << std::endl;
+        }
 
-        // std::cout << "[illixr guest] render delaying for: " << delay_ns << std::endl;
-        std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+        std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
+        std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
 
     }
 
-    void send_gpu_compute_message(int queue_id, int read_dma_bytes) {
+    void send_gpu_compute_message(int queue_id, int read_dma_bytes, int num_response_expected, uint32_t* response_buffer) {
         tx_packets[0] = make_start_packet(queue_id, 1, read_dma_bytes);
         tx_packets[1] = 0x00000000; // dummy packet because bridge driver needs at least 2 packets
 
         // std::cout << "[illixr guest] sending compute message: " << queue_id << std::endl;
         send_packets(tx_packets, 2);
 
-        long int delay_ns = read_delay_time();
+        for (int i = 0; i < num_response_expected) {
+            response_buffer[i] = read_packet();
+            std::cout << " gpu model received: " << response_buffer[i] << std::endl;
+        }
 
-        // std::cout << "[illixr guest] compute delaying for: " << delay_ns << std::endl;
-        std::this_thread::sleep_for(std::chrono::nanoseconds(delay_ns));
+        std::cout << "[illixr guest] compute delaying for: " << response_buffer[0] << std::endl;
+        std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
     }
 
     void copy_to_dma(void* data, int bytes) {
@@ -106,9 +112,8 @@ private:
         packets[start_index+1] = (uint32_t) eye_pos.eye_y;
     }
 
-    long int read_delay_time() {
+    long int read_packet() {
         // return 0;
-        // look for one packet containing the amount of time to delay in ns
         while ((reg_read8(GRAPHICS_STATUS) & 0x1) == 0) ;
         return (long int) reg_read32(GRAPHICS_OUT);
     }

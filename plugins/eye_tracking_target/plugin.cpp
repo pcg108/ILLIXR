@@ -122,7 +122,9 @@ class eye_tracking_target_impl : public eye_tracking_target {
             gpu->copy_to_dma(img.data, img_size);
 
             // send bridge stream message to host illixr worker to read the image and run the model on host
-            gpu->send_gpu_compute_message(2, img_size);
+            uint32_t response_buffer[3];
+            gpu->send_gpu_compute_message(2, img_size, 3, response_buffer);
+            std::cout << "Host returned eye pos: " << response_buffer[1] << " " << response_buffer[2] << std::endl;
 
         } else if (eye_tracking_backend == NPU) {
             cv::Mat img = preprocess_img(eye_pos->eye_img);
