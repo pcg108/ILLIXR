@@ -52,7 +52,7 @@ public:
         // bridge will pause target execution while render is occurring
         send_packets(tx_packets, 10); // start packet, 7 pose packets, 2 eye packets
 
-        for (int i = 0; i < num_response_expected) {
+        for (int i = 0; i < num_response_expected; i++) {
             response_buffer[i] = read_packet();
             std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
