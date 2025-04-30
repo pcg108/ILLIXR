@@ -131,9 +131,10 @@ class eye_tracking_target_impl : public eye_tracking_target {
             // get [1][160][240][1] c array from the cv::Mat
             elem_t (*input_image)[160][240][1] = reinterpret_cast<elem_t (*)[160][240][1]>(img.data);
 
-            // std::cout << "Gemmini inference" << std::endl;
+            std::cout << "Gemmini inference" << std::endl;
             // call gemmini function to perform inference
             gemmini_inference((elem_t*) input_image, pred_x, pred_y);
+            std::cout << "finished inference" << std::endl;
 
         }
 

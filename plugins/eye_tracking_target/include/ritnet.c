@@ -13,6 +13,8 @@
 
 void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
+    printf("Hello we have started gemmini inference\n");
+
     gemmini_flush(0);
     enum tiled_matmul_type_t tiled_matmul_type = WS;
 
@@ -34,7 +36,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end = read_cycles();
 
-    // printf("image copy cycles: %llu \n", end - start);
+    printf("image copy cycles: %llu \n", end - start);
     
     // conv 1
     start = read_cycles();
@@ -68,7 +70,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* pool_padding */      down_block1_conv1_params.pool_padding,
         tiled_matmul_type);
     end = read_cycles();
-    // printf("db_1_conv1 cycles: %llu \n", end - start);
+    printf("db_1_conv1 cycles: %llu \n", end - start);
 
 
     // conv 21 uses concat1
@@ -84,7 +86,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end = read_cycles();
     matmul_cycles += end - start;
-    // printf("db_1_conv_21 (matmul) cycles: %llu \n", end - start); 
+    printf("db_1_conv_21 (matmul) cycles: %llu \n", end - start); 
 
     // conv 22
     start = read_cycles();
@@ -119,7 +121,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_1_conv_22 cycles: %llu \n", end - start);
+    printf("db_1_conv_22 cycles: %llu \n", end - start);
 
 
     // concat 2
@@ -149,7 +151,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     matmul_cycles += end - start;
-    // printf("db_1_concat2 cycles: %llu \n", end - start);
+    printf("db_1_concat2 cycles: %llu \n", end - start);
 
     elem_t (*down_block1_concat2_out)[160][240][65] = (elem_t (*)[160][240][65]) down_block1_concat2_temp;
 
@@ -167,7 +169,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("db_1_conv_31 (matmul) cycles: %llu \n", end - start);
+    printf("db_1_conv_31 (matmul) cycles: %llu \n", end - start);
 
 
     // down block 1, conv_32 relu 
@@ -205,7 +207,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_1_conv_32_relu cycles: %llu \n", end - start);
+    printf("db_1_conv_32_relu cycles: %llu \n", end - start);
 
 
     // average pooling
@@ -246,7 +248,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
     end = read_cycles();
     pool_cycles += end - start;
-    // printf("db_1_avg_pool cycles: %llu \n", end - start);
+    printf("db_1_avg_pool cycles: %llu \n", end - start);
 
 
 
@@ -298,7 +300,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_2_conv1 cycles: %llu \n", end - start);
+    printf("db_2_conv1 cycles: %llu \n", end - start);
 
     // conv 21
     start = read_cycles();
@@ -313,7 +315,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end = read_cycles();
     matmul_cycles += end - start;
-    // printf("db_2_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("db_2_conv_21 (matmul) cycles: %llu \n", end - start);
 
     // conv 22
     start = read_cycles();
@@ -348,7 +350,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_2_conv_22 cycles: %llu \n", end - start);
+    printf("db_2_conv_22 cycles: %llu \n", end - start);
 
 
     // concat 2
@@ -409,7 +411,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("db_2_conv_31 (matmul) cycles: %llu \n", end - start);
+    printf("db_2_conv_31 (matmul) cycles: %llu \n", end - start);
 
 
     // down block 2, conv_32 relu (for concat later)
@@ -447,7 +449,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_2_conv_32_relu cycles: %llu \n", end - start);
+    printf("db_2_conv_32_relu cycles: %llu \n", end - start);
 
 
     // down block 2, conv_32 (for relu and pool)
@@ -522,7 +524,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_3_conv1_concat1 cycles: %llu \n", end - start);
+    printf("db_3_conv1_concat1 cycles: %llu \n", end - start);
 
 
     start = read_cycles();
@@ -537,7 +539,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end = read_cycles();
     matmul_cycles += end - start;
-    // printf("db_3_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("db_3_conv_21 (matmul) cycles: %llu \n", end - start);
 
     start = read_cycles();
     tiled_conv_stride_auto(
@@ -571,7 +573,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_3_conv_22_concat2 cycles: %llu \n", end - start);
+    printf("db_3_conv_22_concat2 cycles: %llu \n", end - start);
 
 
     elem_t (*down_block3_conv22_concat2_out)[40][60][96] = (elem_t (*)[40][60][96]) down_block3_conv22_concat2_temp;
@@ -590,7 +592,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("db_3_conv_31 (matmul) cycles: %llu \n", end - start);
+    printf("db_3_conv_31 (matmul) cycles: %llu \n", end - start);
 
 
     // down block 3, conv_32 relu (for concat later)
@@ -628,7 +630,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_3_conv_32_relu cycles: %llu \n", end - start);
+    printf("db_3_conv_32_relu cycles: %llu \n", end - start);
 
 
     // down block 3, conv_32 (for relu and pool)
@@ -666,7 +668,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_3_conv_32_relu_pool cycles: %llu \n", end - start);
+    printf("db_3_conv_32_relu_pool cycles: %llu \n", end - start);
     
 
 // down block 4
@@ -704,7 +706,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_4_conv1_concat1 cycles: %llu \n", end - start);
+    printf("db_4_conv1_concat1 cycles: %llu \n", end - start);
 
 
     start = read_cycles();
@@ -719,7 +721,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end = read_cycles();
     matmul_cycles += end - start;
-    // printf("db_4_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("db_4_conv_21 (matmul) cycles: %llu \n", end - start);
 
     start = read_cycles();
     tiled_conv_stride_auto(
@@ -753,7 +755,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_4_conv_22_concat2 cycles: %llu \n", end - start);
+    printf("db_4_conv_22_concat2 cycles: %llu \n", end - start);
 
 
     elem_t (*down_block4_conv22_concat2_out)[20][30][96] = (elem_t (*)[20][30][96]) down_block4_conv22_concat2_temp;
@@ -772,7 +774,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("db_4_conv_31 (matmul) cycles: %llu \n", end - start);
+    printf("db_4_conv_31 (matmul) cycles: %llu \n", end - start);
 
 
     // down block 4, conv_32 relu (for concat later)
@@ -810,7 +812,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_4_conv_32_relu cycles: %llu \n", end - start);
+    printf("db_4_conv_32_relu cycles: %llu \n", end - start);
 
 
     // down block 4, conv_32 (for relu and pool)
@@ -848,7 +850,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_4_conv_32_relu_pool cycles: %llu \n", end - start);
+    printf("db_4_conv_32_relu_pool cycles: %llu \n", end - start);
     
 
 // down block 5
@@ -886,7 +888,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_5_conv1_concat1 cycles: %llu \n", end - start);
+    printf("db_5_conv1_concat1 cycles: %llu \n", end - start);
 
 
     start = read_cycles();
@@ -901,7 +903,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end = read_cycles();
     matmul_cycles += end - start;
-    // printf("db_5_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("db_5_conv_21 (matmul) cycles: %llu \n", end - start);
 
     start = read_cycles();
     tiled_conv_stride_auto(
@@ -935,7 +937,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_5_conv_22_concat2 cycles: %llu \n", end - start);
+    printf("db_5_conv_22_concat2 cycles: %llu \n", end - start);
 
 
     elem_t (*down_block5_conv22_concat2_out)[10][15][96] = (elem_t (*)[10][15][96]) down_block5_conv22_concat2_temp;
@@ -954,7 +956,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("db_5_conv_31 (matmul) cycles: %llu \n", end - start);
+    printf("db_5_conv_31 (matmul) cycles: %llu \n", end - start);
 
 
     // down block 5, conv_32 relu 
@@ -989,7 +991,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("db_5_conv_32_relu cycles: %llu \n", end - start);
+    printf("db_5_conv_32_relu cycles: %llu \n", end - start);
 
     
 // up block 1
@@ -1048,7 +1050,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end =  read_cycles();
     conv_cycles += end - start;
-    // printf("ub_1_upsample cycles: %llu \n", end - start);
+    printf("ub_1_upsample cycles: %llu \n", end - start);
 
 
     // up block 1, conv_11
@@ -1064,7 +1066,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_1_conv_11 (matmul) cycles: %llu \n", end - start);
+    printf("ub_1_conv_11 (matmul) cycles: %llu \n", end - start);
 
 
     // up block 1, conv_12
@@ -1100,7 +1102,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_1_conv_12_concat2 cycles: %llu \n", end - start);
+    printf("ub_1_conv_12_concat2 cycles: %llu \n", end - start);
 
 
     elem_t (*up_block1_conv12_concat2_out)[20][30][96] = (elem_t (*)[20][30][96]) up_block1_conv12_concat2_temp;
@@ -1120,7 +1122,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_1_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("ub_1_conv_21 (matmul) cycles: %llu \n", end - start);
 
 
     // up block 1, conv_22
@@ -1153,7 +1155,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_1_conv_22_concat2 cycles: %llu \n", end - start);
+    printf("ub_1_conv_22_concat2 cycles: %llu \n", end - start);
 
 
 // up block 2
@@ -1210,7 +1212,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end =  read_cycles();
     conv_cycles += end - start;
-    // printf("ub_2_upsample cycles: %llu \n", end - start);
+    printf("ub_2_upsample cycles: %llu \n", end - start);
 
     // up block 2, conv_11
     start = read_cycles();
@@ -1225,7 +1227,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_2_conv_11 (matmul) cycles: %llu \n", end - start);
+    printf("ub_2_conv_11 (matmul) cycles: %llu \n", end - start);
 
     // up block 2, conv_12
     start = read_cycles();
@@ -1260,7 +1262,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_2_conv_12_concat2 cycles: %llu \n", end - start);
+    printf("ub_2_conv_12_concat2 cycles: %llu \n", end - start);
 
 
     elem_t (*up_block2_conv12_concat2_out)[40][60][96] = (elem_t (*)[40][60][96]) up_block2_conv12_concat2_temp;
@@ -1279,7 +1281,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_2_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("ub_2_conv_21 (matmul) cycles: %llu \n", end - start);
 
 
     // up block 2, conv_22
@@ -1312,7 +1314,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_2_conv_22_concat2 cycles: %llu \n", end - start);
+    printf("ub_2_conv_22_concat2 cycles: %llu \n", end - start);
 
 
     // up block 3
@@ -1370,7 +1372,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end =  read_cycles();
     conv_cycles += end - start;
-    // printf("ub_3_upsample cycles: %llu \n", end - start);
+    printf("ub_3_upsample cycles: %llu \n", end - start);
 
     // up block 3, conv_11
     start = read_cycles();
@@ -1385,7 +1387,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_3_conv_11 (matmul) cycles: %llu \n", end - start);
+    printf("ub_3_conv_11 (matmul) cycles: %llu \n", end - start);
 
     // up block 3, conv_12
     start = read_cycles();
@@ -1420,7 +1422,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_3_conv_12_concat2 cycles: %llu \n", end - start);
+    printf("ub_3_conv_12_concat2 cycles: %llu \n", end - start);
 
 
     elem_t (*up_block3_conv12_concat2_out)[80][120][96] = (elem_t (*)[80][120][96]) up_block3_conv12_concat2_temp;
@@ -1439,7 +1441,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_3_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("ub_3_conv_21 (matmul) cycles: %llu \n", end - start);
 
 
     // up block 3, conv_22
@@ -1472,7 +1474,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_3_conv_22_concat2 cycles: %llu \n", end - start);
+    printf("ub_3_conv_22_concat2 cycles: %llu \n", end - start);
 
 
 // up block 4
@@ -1529,7 +1531,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     end =  read_cycles();
     conv_cycles += end - start;
-    // printf("ub_4_upsample cycles: %llu \n", end - start);
+    printf("ub_4_upsample cycles: %llu \n", end - start);
 
     // up block 4, conv_11
     start = read_cycles();
@@ -1544,7 +1546,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_4_conv_11 (matmul) cycles: %llu \n", end - start);
+    printf("ub_4_conv_11 (matmul) cycles: %llu \n", end - start);
 
     // up block 4, conv_12
     start = read_cycles();
@@ -1579,7 +1581,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_4_conv_12_concat2 cycles: %llu \n", end - start);
+    printf("ub_4_conv_12_concat2 cycles: %llu \n", end - start);
     
     
     elem_t (*up_block4_conv12_concat2_out)[160][240][96] = (elem_t (*)[160][240][96]) up_block4_conv12_concat2_temp;
@@ -1598,7 +1600,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("ub_4_conv_21 (matmul) cycles: %llu \n", end - start);
+    printf("ub_4_conv_21 (matmul) cycles: %llu \n", end - start);
     
     
     // up block 4, conv_22
@@ -1631,7 +1633,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         tiled_matmul_type);
     end = read_cycles();
     conv_cycles += end - start;
-    // printf("ub_4_conv_22_concat2 cycles: %llu \n", end - start);
+    printf("ub_4_conv_22_concat2 cycles: %llu \n", end - start);
     
     
     // out 
@@ -1649,7 +1651,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         WS);
     end =  read_cycles();
     matmul_cycles += end - start;
-    // printf("out (matmul) cycles: %llu \n", end - start);
+    printf("out (matmul) cycles: %llu \n", end - start);
     
     
     // int indices[160][240];
@@ -1669,9 +1671,9 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
     // for (int i = 0; i < 160; i++) { 
     //     for (int j = 0; j < 240; j++) {
-    //         // printf("%d ", indices[i][j]);
+    //         printf("%d ", indices[i][j]);
     //     }
-    //     // printf("\n");
+    //     printf("\n");
     // }
     
     
@@ -1701,14 +1703,14 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     uint64_t total_cycles = im2col_cycles + matmul_cycles + pool_cycles + conv_cycles + conv_dw_cycles + res_add_cycles + other_cycles;
 
-    // printf("\nTotal cycles: %llu (100%%)\n", total_cycles);
-    // printf("Matmul cycles: %llu (%d%%)\n", matmul_cycles, (matmul_cycles * 100) / total_cycles);
-    // printf("Im2col cycles: %llu (%d%%)\n", im2col_cycles, (im2col_cycles * 100) / total_cycles);
-    // printf("Conv cycles: %llu (%d%%)\n", conv_cycles, (conv_cycles * 100) / total_cycles);
-    // printf("Pooling cycles: %llu (%d%%)\n", pool_cycles, (pool_cycles * 100) / total_cycles);
-    // printf("Depthwise convolution cycles: %llu (%d%%)\n", conv_dw_cycles, (conv_dw_cycles * 100) / total_cycles);
-    // printf("Res add cycles: %llu (%d%%)\n", res_add_cycles, (res_add_cycles * 100) / total_cycles);
-    // printf("Other cycles: %llu (%d%%)\n", other_cycles, (other_cycles * 100) / total_cycles);
+    printf("\nTotal cycles: %llu (100%%)\n", total_cycles);
+    printf("Matmul cycles: %llu (%d%%)\n", matmul_cycles, (matmul_cycles * 100) / total_cycles);
+    printf("Im2col cycles: %llu (%d%%)\n", im2col_cycles, (im2col_cycles * 100) / total_cycles);
+    printf("Conv cycles: %llu (%d%%)\n", conv_cycles, (conv_cycles * 100) / total_cycles);
+    printf("Pooling cycles: %llu (%d%%)\n", pool_cycles, (pool_cycles * 100) / total_cycles);
+    printf("Depthwise convolution cycles: %llu (%d%%)\n", conv_dw_cycles, (conv_dw_cycles * 100) / total_cycles);
+    printf("Res add cycles: %llu (%d%%)\n", res_add_cycles, (res_add_cycles * 100) / total_cycles);
+    printf("Other cycles: %llu (%d%%)\n", other_cycles, (other_cycles * 100) / total_cycles);
 
 
 
