@@ -54,7 +54,7 @@ public:
 
         for (int i = 0; i < num_response_expected; i++) {
             response_buffer[i] = read_packet();
-            std::cout << " gpu model received: " << response_buffer[i] << std::endl;
+            // std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
 
         std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
@@ -71,7 +71,7 @@ public:
 
         for (int i = 0; i < num_response_expected; i++) {
             response_buffer[i] = read_packet();
-            std::cout << " gpu model received: " << response_buffer[i] << std::endl;
+            // std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
 
         std::cout << "[illixr guest] compute delaying for: " << response_buffer[0] << std::endl;
