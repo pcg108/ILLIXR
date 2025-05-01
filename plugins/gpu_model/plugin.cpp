@@ -79,6 +79,7 @@ public:
     }
 
     void copy_to_dma(void* data, int bytes) {
+        std::unique_lock lock{dma_mutex};
         std::memcpy((void*) dma_ptr, data, bytes);
     }
 
@@ -137,6 +138,7 @@ private:
     const std::shared_ptr<const RelativeClock>                       _m_clock;
 
     mutable std::shared_mutex                                        bridge_mutex;
+    mutable std::shared_mutex                                        dma_mutex;
 
     intptr_t ptr, dma_ptr;
 

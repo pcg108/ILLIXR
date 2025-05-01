@@ -121,7 +121,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
             int img_size = img.total() * img.elemSize(); 
             gpu->copy_to_dma(img.data, img_size);
 
-            // print_first_20_rows(img);
+            print_first_5_rows(img);
 
             // send bridge stream message to host illixr worker to read the image and run the model on host
             uint32_t response_buffer[3];
@@ -149,8 +149,8 @@ class eye_tracking_target_impl : public eye_tracking_target {
 
 private:
 
-    void print_first_20_rows(const cv::Mat& mat) {
-        int rows_to_print = std::min(20, mat.rows);
+    void print_first_5_rows(const cv::Mat& mat) {
+        int rows_to_print = std::min(5, mat.rows);
         cv::Mat first_rows = mat(cv::Range(0, rows_to_print), cv::Range::all());
 
         std::cout << "First " << rows_to_print << " rows of matrix:\n" << first_rows << std::endl;
