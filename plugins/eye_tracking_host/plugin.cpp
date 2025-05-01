@@ -21,8 +21,8 @@
 using namespace ILLIXR;
 
 
-static constexpr const int width_ = 160;
-static constexpr const int height_ = 240;
+static constexpr const int width_ = 240;
+static constexpr const int height_ = 160;
 
 class eye_tracking_host_impl : public eye_tracking_host {
 public:
@@ -59,6 +59,12 @@ public:
         }
 
 
+    void print_first_20_rows(const cv::Mat& mat) {
+        int rows_to_print = std::min(20, mat.rows);
+        cv::Mat first_rows = mat(cv::Range(0, rows_to_print), cv::Range::all());
+    
+        std::cout << "First " << rows_to_print << " rows of matrix:\n" << first_rows << std::endl;
+    }
 
 
     eye_position_type get_eye_position(cv::Mat img)  {
@@ -69,12 +75,14 @@ public:
         }
         std::memcpy(input_image_.data(), img.ptr<float>(), total_elements * sizeof(float));
 
+        // print_first_20_rows(img);
+
         const char* input_names[] = {"x"};
         const char* output_names[] = {"conv2d_41"};
         session->Run(run_options, input_names, input_tensor_.get(), 1, output_names, output_tensor_.get(), 1);
 
         float pred_x, pred_y;
-        get_fovea(pred_x, pred_y);
+        get_fovea(pred_y, pred_x);
         std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
 
         return eye_position_type{_m_clock->now(), pred_x, pred_y};
@@ -133,8 +141,8 @@ private:
     std::unique_ptr<Ort::Value> output_tensor_;
     std::unique_ptr<Ort::Session> session;
 
-    std::array<int64_t, 4> input_shape_{1, 1, width_, height_};
-    std::array<int64_t, 4> output_shape_{1, 4, width_, height_};
+    std::array<int64_t, 4> input_shape_{1, 1, height_, width_};
+    std::array<int64_t, 4> output_shape_{1, 4, height_, width_};
     std::array<float, width_ * height_> input_image_{};
     std::array<float, 4 * width_ * height_> results_{};
 };

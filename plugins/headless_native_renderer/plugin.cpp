@@ -43,8 +43,8 @@ const char* SOCKET_PATH = "/tmp/illixr-host";
 const int BUFFER_SIZE = 1024;
 const int MAX_CLIENTS = 10;
 
-static constexpr const int width_ = 160;
-static constexpr const int height_ = 240;
+static constexpr const int width_ = 240;
+static constexpr const int height_ = 160;
 
 class native_renderer : public threadloop {
 public:
@@ -209,8 +209,8 @@ public:
                             uint32_t socket_data[15];
                             std::memcpy(socket_data, socket_buffer, bytes_read);
 
-                            // uint32_t* float_data = reinterpret_cast<uint32_t*>(socket_data);
-                            float* float_data = reinterpret_cast<float*>(socket_data);
+                            uint32_t* float_data = reinterpret_cast<uint32_t*>(socket_data);
+                            // float* float_data = reinterpret_cast<float*>(socket_data);
 
                             std::cout << "[ILLIXR host server] Received from bridge: ";
                             for (size_t i = 0; i < 11; ++i) {
@@ -227,8 +227,9 @@ public:
 
                             VK_ASSERT_SUCCESS(vkResetFences(hs->vk_device, 1, &frame_fence))
 
+                            uint32_t response[10];
+
                             if (queue_id == 0) {
-                                std::cout << "hello" << std::endl;
 
                                 auto t = time_point();
                                 Eigen::Vector3f v(float_data[2], float_data[3], float_data[4]);
@@ -268,9 +269,12 @@ public:
                                 VK_ASSERT_SUCCESS(vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
 
                                 time_taken = get_timestamp(appQueryPool);
+                                std::cout << "[ILLIXR host server] render time: " << time_taken / 1e6 << std::endl;
+
+                                response[0] = 1; // responding with 1 packet
+                                response[1] = time_taken;
 
                             } else if (queue_id == 1) {
-                                std::cout << "hi" << std::endl;
 
                                 auto t = time_point();
                                 Eigen::Vector3f v(float_data[2], float_data[3], float_data[4]);
@@ -301,15 +305,19 @@ public:
                                 VK_ASSERT_SUCCESS(vkWaitForFences(hs->vk_device, 1, &frame_fence, VK_TRUE, UINT64_MAX))
 
                                 time_taken = get_timestamp(twQueryPool);
+                                std::cout << "[ILLIXR host server] tw time: " << time_taken / 1e6 << std::endl;
 
-                                bytes_written = save_frame();
+                                bytes_written = save_frame(float_data[9], float_data[10]);
+
+                                response[0] = 2; // responding with 2 packets
+                                response[1] = time_taken;
+                                response[2] = bytes_written;
 
                             } else if (queue_id == 2) {
-                                std::cout << "there" << std::endl;
 
-                                // if (dma_read == 0) {
-                                //     std::cout << "[ILLIXR host server] Error: received eye tracking request but no XMDA read" << std::endl;
-                                // }
+                                if (dma_read == 0) {
+                                    std::cout << "[ILLIXR host server] Error: received eye tracking request but no XMDA read" << std::endl;
+                                }
 
                                 dma_read = 153600;
                                 int rc = pread(xdma_c2hfd, input_image_.data(), dma_read, target_dram_addr);
@@ -324,18 +332,22 @@ public:
                                 auto end = _m_clock->now();
 
                                 time_taken = duration2double<std::nano>(end - start);
-                                std::cout << "[ILLIXR host server] eye tracking took: " << time_taken << " ns" << std::endl;
+                                std::cout << "[ILLIXR host server] eye tracking time: " << time_taken << " ns" << std::endl;
+
+                                response[0] = 3; // responding with 3 packets
+                                response[1] = time_taken;
+                                response[2] = eye_pos.eye_x;
+                                response[3] = eye_pos.eye_y;
 
                             } else {
                                 std::cout << "Unrecognized queue ID" << std::endl;
                             }
 
-                            std::cout << "time: " << time_taken / 1e6 << std::endl;
-                            uint8_t buffer[sizeof(double) * 2];
-                            std::memcpy(buffer, &time_taken, sizeof(double));
-                            std::memcpy(buffer + sizeof(double), &bytes_written, sizeof(double));
+                            int response_size = sizeof(uint32_t) * (response[0]+1);
+                            uint8_t buffer[response_size];
+                            std::memcpy(buffer, response, response_size);
 
-                            if (send(fds[i].fd, buffer, sizeof(double) * 2, 0) < 0) {
+                            if (send(fds[i].fd, buffer, response_size, 0) < 0) {
                                 std::cout << "[ILLIXR host server] Error responding to bridge driver" << std::endl;
                             }
 
@@ -639,7 +651,7 @@ private:
     }
 
 
-    int save_frame() {
+    int save_frame(float x, float y) {
 
         // create image in host memory 
         VkImage dstImage;
@@ -729,7 +741,7 @@ private:
         }
 
         
-        std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%d.ppm", frame_count);
+        std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%0.2f_%0.2f.ppm", x, y);
         const char* filename = fname.c_str();
 
         std::ofstream file(filename, std::ofstream::binary);
@@ -972,7 +984,7 @@ private:
 
         // Populate the buffer with lowest possible shading rate pattern (4x4)
         uint8_t  val                       = (4 >> 1) | (4 << 1);
-        std::cout << "Initial: " << static_cast<int>(val) << std::endl;
+        // std::cout << "Initial: " << static_cast<int>(val) << std::endl;
         uint8_t *shading_rate_pattern_data = new uint8_t[buffer_size];
         memset(shading_rate_pattern_data, val, buffer_size);
 
