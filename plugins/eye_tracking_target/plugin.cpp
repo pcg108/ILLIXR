@@ -121,7 +121,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
             int img_size = img.total() * img.elemSize(); 
             gpu->copy_to_dma(img.data, img_size);
 
-            print_first_5_rows(img);
+            // print_first_5_rows(img);
 
             // send bridge stream message to host illixr worker to read the image and run the model on host
             uint32_t response_buffer[3];
