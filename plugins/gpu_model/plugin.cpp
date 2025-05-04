@@ -81,7 +81,7 @@ public:
     void copy_to_dma(void* data, int bytes) {
         std::unique_lock lock{dma_mutex};
         std::memcpy((void*) dma_ptr, data, bytes);
-        msync(dma_ptr, bytes, MS_SYNC);
+        msync((void*) dma_ptr, bytes, MS_SYNC);
     }
 
 
