@@ -176,7 +176,9 @@ find_package(X11 REQUIRED)
 
 pkg_check_modules(gl REQUIRED gl)
 
-find_package(Eigen3 REQUIRED)
+# find_package(Eigen3 REQUIRED)
+add_definitions(-DEIGEN_USE_BLAS=1)
+add_subdirectory(${CMAKE_SOURCE_DIR}/eigen)
 
 #############
 # plugin specific dependencies that are used by several plugins
