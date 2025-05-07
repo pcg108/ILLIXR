@@ -15,6 +15,12 @@ add_library(plugin.main${ILLIXR_BUILD_SUFFIX} SHARED
         )
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/OpenBLAS)
+set(NOFORTRAN "1")
+set(DYNAMIC_ARCH OFF)
+set(BUILD_WITHOUT_LAPACK OFF)
+set(BUILD_TESTING OFF)
+set(BUILD_BENCHMARKS OFF)
+set(TARGET "RISCV64_ZVL256B")
 
 ##############
 # yaml parser
