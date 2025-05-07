@@ -39,7 +39,6 @@ target_link_libraries(${PLUGIN_NAME}
     ${Eigen3_LIBRARIES}
     ${onnxruntime_LIBRARIES}
     spdlog::spdlog
-    ritnet
 )
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)

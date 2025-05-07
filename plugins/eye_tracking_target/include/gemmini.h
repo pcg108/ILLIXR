@@ -61,7 +61,7 @@
 #define WEIGHT_STATIONARY 1
 
 #define NO_ACTIVATION 0
-#define RELU 1
+#define RELU_ACC 1
 #define LAYERNORM 2
 #define IGELU 3
 #define SOFTMAX 4
@@ -889,7 +889,7 @@ static elem_t scale_and_sat(acc_t x, int act, acc_scale_t scale, acc_scale_t ber
   // Clip result
   x = x > elem_t_max ? elem_t_max : (x < elem_t_min ? elem_t_min : x);
   // Apply activation function
-  if (act == RELU) {
+  if (act == RELU_ACC) {
     x = x < 0 ? 0 : x;
   }
   return x;
@@ -3222,7 +3222,7 @@ static void tiled_resadd(const size_t I, const size_t J,
         bool relu,
         enum tiled_matmul_type_t matadd_type) {
 
-    gemmini_extended_config_st(stride * sizeof(elem_t), relu ? RELU : NO_ACTIVATION, C_scale);
+    gemmini_extended_config_st(stride * sizeof(elem_t), relu ? RELU_ACC : NO_ACTIVATION, C_scale);
     gemmini_config_ex(WS, 0, 0);
 
     gemmini_extended4_config_ld(stride * sizeof(elem_t), A_scale, true, DIM, 0);

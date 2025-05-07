@@ -1,7 +1,7 @@
-#include "gemmini.h"
-#include "ritnet_helpers.h"
-#include "ritnet_params.h"
-#include "ritnet_weights.h"
+#include "include/gemmini.h"
+#include "include/ritnet_helpers.h"
+#include "include/ritnet_params.h"
+#include "include/ritnet_weights.h"
 
 void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
@@ -18,7 +18,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // copying image into column 0 of concat1, applying the same quantization factor as conv1 so that they can be concatenated
     start = read_cycles();
     tiled_matmul_auto(38400, 1, 1, 
-        images, identity_kernel, NULL, down_block1_concat1_temp,
+        images, (elem_t*) identity_kernel, NULL, down_block1_concat1_temp,
         1, 1, 0, 65,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, db1_conv1_x_scale/db1_conv1_y_scale, 0, true,
@@ -51,11 +51,11 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         false, false, false, false, false,
         
         /* input */             images, 
-        /* weights */           down_block1_conv1_w, 
+        /* weights */           (elem_t*) down_block1_conv1_w, 
         /* bias */              down_block1_conv1_b,
-        /* output */            down_block1_concat1_temp+1,
+        /* output */            (elem_t*) down_block1_concat1_temp+1,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block1_conv1_params.output_scale, 
         /* pool_size */         down_block1_conv1_params.pool_size, 
         /* pool_stride */       down_block1_conv1_params.pool_stride, 
@@ -68,7 +68,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // conv 21 uses concat1
     start = read_cycles();
     tiled_matmul_auto(down_block1_conv21_params.I, down_block1_conv21_params.J, down_block1_conv21_params.K,
-        down_block1_concat1_temp, down_block1_conv21_w, down_block1_conv21_b, down_block1_conv21_out,
+        down_block1_concat1_temp, (elem_t*) down_block1_conv21_w, down_block1_conv21_b, down_block1_conv21_out,
         65, down_block1_conv21_params.J, down_block1_conv21_params.J, down_block1_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block1_conv21_params.output_scale, 0, true,
@@ -101,11 +101,11 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         false, false, false, false, false,
         
         /* input */             down_block1_conv21_out, 
-        /* weights */           down_block1_conv22_w, 
+        /* weights */           (elem_t*) down_block1_conv22_w, 
         /* bias */              down_block1_conv22_b, 
-        /* output */            down_block1_concat2_temp+33,
+        /* output */            (elem_t*) down_block1_concat2_temp+33,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block1_conv22_params.output_scale, 
         /* pool_size */         down_block1_conv22_params.pool_size, 
         /* pool_stride */       down_block1_conv22_params.pool_stride, 
@@ -132,7 +132,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     // write the input quantized with conv22 scale into concat2
     tiled_matmul_auto(38400, 1, 1, 
-        images, identity_kernel, NULL, down_block1_concat2_temp,
+        images, (elem_t*) identity_kernel, NULL, down_block1_concat2_temp,
         1, 1, 1, 65,
         /* A_scale */ 1.0/db1_conv22_y_scale, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, ACC_SCALE_IDENTITY, 0, true, // quantize to conv22
@@ -151,7 +151,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // down block 1, conv_31
     start = read_cycles();
     tiled_matmul_auto(down_block1_conv31_params.I, down_block1_conv31_params.J, down_block1_conv31_params.K,
-        down_block1_concat2_out, down_block1_conv31_w, down_block1_conv31_b, down_block1_conv31_out,
+        (elem_t*) down_block1_concat2_out, (elem_t*) down_block1_conv31_w, down_block1_conv31_b, down_block1_conv31_out,
         down_block1_conv31_params.K, down_block1_conv31_params.J, down_block1_conv31_params.J, down_block1_conv31_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block1_conv31_params.output_scale, 0, true,
@@ -189,7 +189,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block1_conv32_b, 
         /* output */        (elem_t*)   down_block1_conv32_out_relu,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block1_conv32_params.output_scale,  
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -215,9 +215,9 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           0, 
         /* kernel_dim */        2, 
         /* input */             down_block1_conv32_out_relu, 
-        /* weights */           upsample_dw_w, 
+        /* weights */           (elem_t*) upsample_dw_w, 
         /* bias */              NULL, 
-        /* output */            down_block1_conv32_avg_pool, 
+        /* output */            (elem_t*) down_block1_conv32_avg_pool, 
         /* activation */ NO_ACTIVATION, /* scale */ db1_conv32_y_scale*0.25/db2_conv1_x_scale, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
     
     // average pooling again to write into the concat 1 of the next block (for some reason I can't just dequantize the first one)
@@ -232,9 +232,9 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           0, 
         /* kernel_dim */        2, 
         /* input */             down_block1_conv32_out_relu, 
-        /* weights */           upsample_dw_w, 
+        /* weights */           (elem_t*) upsample_dw_w, 
         /* bias */              NULL, 
-        /* output */            down_block1_conv32_avg_pool_2, 
+        /* output */            (elem_t*) down_block1_conv32_avg_pool_2, 
         /* activation */ NO_ACTIVATION, /* scale */ db1_conv32_y_scale*0.25/db2_conv21_x_scale, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
     
     
@@ -249,7 +249,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     // copying the output of conv32 into the first 32 channels of concat1
     tiled_matmul_auto(down_block2_conv1_params.I, down_block2_conv1_params.J, down_block2_conv1_params.K,
-        down_block1_conv32_avg_pool_2, identity_32, NULL, down_block2_concat1_temp,
+        down_block1_conv32_avg_pool_2, (elem_t*) identity_32, NULL, down_block2_concat1_temp,
         down_block2_conv1_params.K, down_block2_conv1_params.J, down_block2_conv1_params.J, 96,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, ACC_SCALE_IDENTITY,
         NO_ACTIVATION, 1.0, 0, true,
@@ -280,11 +280,11 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         false, false, false, false, false,
         
         /* input */             down_block1_conv32_avg_pool, 
-        /* weights */           down_block2_conv1_w, 
+        /* weights */           (elem_t*) down_block2_conv1_w, 
         /* bias */              down_block2_conv1_b, 
-        /* output */            down_block2_concat1_temp+32,
+        /* output */            (elem_t*) down_block2_concat1_temp+32,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block2_conv1_params.output_scale, 
         /* pool_size */         down_block2_conv1_params.pool_size, 
         /* pool_stride */       down_block2_conv1_params.pool_stride, 
@@ -297,7 +297,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // conv 21
     start = read_cycles();
     tiled_matmul_auto(down_block2_conv21_params.I, down_block2_conv21_params.J, down_block2_conv21_params.K,
-        down_block2_concat1_temp, down_block2_conv21_w, down_block2_conv21_b, down_block2_conv21_out,
+        down_block2_concat1_temp, (elem_t*) down_block2_conv21_w, down_block2_conv21_b, down_block2_conv21_out,
         96, down_block2_conv21_params.J, down_block2_conv21_params.J, down_block2_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block2_conv21_params.output_scale, 0, true,
@@ -329,12 +329,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             down_block2_conv21_out, 
-        /* weights */           down_block2_conv22_w, 
+        /* input */             (elem_t*) down_block2_conv21_out, 
+        /* weights */           (elem_t*) down_block2_conv22_w, 
         /* bias */              down_block2_conv22_b, 
-        /* output */            down_block2_concat2_temp+64,
+        /* output */            (elem_t*) down_block2_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block2_conv22_params.output_scale, 
         /* pool_size */         down_block2_conv22_params.pool_size, 
         /* pool_stride */       down_block2_conv22_params.pool_stride, 
@@ -393,7 +393,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // down block 2, conv_31
     start = read_cycles();
     tiled_matmul_auto(down_block2_conv31_params.I, down_block2_conv31_params.J, down_block2_conv31_params.K,
-        down_block2_concat2_out, down_block2_conv31_w, down_block2_conv31_b, down_block2_conv31_out,
+        (elem_t*) down_block2_concat2_out, (elem_t*) down_block2_conv31_w, down_block2_conv31_b, down_block2_conv31_out,
         down_block2_conv31_params.K, down_block2_conv31_params.J, down_block2_conv31_params.J, down_block2_conv31_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block2_conv31_params.output_scale, 0, true,
@@ -431,7 +431,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block2_conv32_b, 
         /* output */        (elem_t*)   up_block3_conv12_concat2_temp,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block2_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -469,7 +469,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block2_conv32_b, 
         /* output */        (elem_t*)   down_block3_conv22_concat2_temp,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block2_conv32_params.output_scale,
         /* pool_size */     down_block2_conv32_params.pool_size, 
         /* pool_stride */   down_block2_conv32_params.pool_stride, 
@@ -504,11 +504,11 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         false, false, false, false, false,
         
         /* input */             down_block3_conv22_concat2_temp, 
-        /* weights */           down_block3_conv1_w, 
+        /* weights */           (elem_t*) down_block3_conv1_w, 
         /* bias */              down_block3_conv1_b, 
-        /* output */            down_block3_conv22_concat2_temp+32,
+        /* output */            (elem_t*) down_block3_conv22_concat2_temp+32,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block3_conv1_params.output_scale, 
         /* pool_size */         down_block3_conv1_params.pool_size, 
         /* pool_stride */       down_block3_conv1_params.pool_stride, 
@@ -521,7 +521,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     start = read_cycles();
     tiled_matmul_auto(down_block3_conv21_params.I, down_block3_conv21_params.J, down_block3_conv21_params.K,
-        down_block3_conv22_concat2_temp, down_block3_conv21_w, down_block3_conv21_b, down_block3_conv21_out,
+        down_block3_conv22_concat2_temp, (elem_t*) down_block3_conv21_w, down_block3_conv21_b, down_block3_conv21_out,
         96, down_block3_conv21_params.J, down_block3_conv21_params.J, down_block3_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block3_conv21_params.output_scale, 0, true,
@@ -552,12 +552,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             down_block3_conv21_out, 
-        /* weights */           down_block3_conv22_w, 
+        /* input */             (elem_t*) down_block3_conv21_out, 
+        /* weights */           (elem_t*) down_block3_conv22_w, 
         /* bias */              down_block3_conv22_b, 
-        /* output */            down_block3_conv22_concat2_temp+64,
+        /* output */            (elem_t*) down_block3_conv22_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block2_conv22_params.output_scale, 
         /* pool_size */         down_block2_conv22_params.pool_size, 
         /* pool_stride */       down_block2_conv22_params.pool_stride, 
@@ -574,7 +574,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // down block 3, conv_31
     start = read_cycles();
     tiled_matmul_auto(down_block3_conv31_params.I, down_block3_conv31_params.J, down_block3_conv31_params.K,
-        down_block3_conv22_concat2_out, down_block3_conv31_w, down_block3_conv31_b, down_block3_conv31_out,
+        (elem_t*) down_block3_conv22_concat2_out, (elem_t*) down_block3_conv31_w, down_block3_conv31_b, down_block3_conv31_out,
         down_block3_conv31_params.K, down_block3_conv31_params.J, down_block3_conv31_params.J, down_block3_conv31_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block3_conv31_params.output_scale, 0, true,
@@ -612,7 +612,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block3_conv32_b, 
         /* output */        (elem_t*)   up_block2_conv12_concat2_temp,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block3_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -650,7 +650,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block3_conv32_b, 
         /* output */        (elem_t*)   down_block4_conv22_concat2_temp,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block3_conv32_params.output_scale,
         /* pool_size */     down_block3_conv32_params.pool_size, 
         /* pool_stride */   down_block3_conv32_params.pool_stride, 
@@ -686,11 +686,11 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         false, false, false, false, false,
         
         /* input */             down_block4_conv22_concat2_temp, 
-        /* weights */           down_block4_conv1_w, 
+        /* weights */           (elem_t*) down_block4_conv1_w, 
         /* bias */              down_block4_conv1_b, 
-        /* output */            down_block4_conv22_concat2_temp+32,
+        /* output */            (elem_t*) down_block4_conv22_concat2_temp+32,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block4_conv1_params.output_scale, 
         /* pool_size */         down_block4_conv1_params.pool_size, 
         /* pool_stride */       down_block4_conv1_params.pool_stride, 
@@ -703,7 +703,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     start = read_cycles();
     tiled_matmul_auto(down_block4_conv21_params.I, down_block4_conv21_params.J, down_block4_conv21_params.K,
-        down_block4_conv22_concat2_temp, down_block4_conv21_w, down_block4_conv21_b, down_block4_conv21_out,
+        down_block4_conv22_concat2_temp, (elem_t*) down_block4_conv21_w, down_block4_conv21_b, down_block4_conv21_out,
         96, down_block4_conv21_params.J, down_block4_conv21_params.J, down_block4_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block4_conv21_params.output_scale, 0, true,
@@ -734,12 +734,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             down_block4_conv21_out, 
-        /* weights */           down_block4_conv22_w, 
+        /* input */             (elem_t*) down_block4_conv21_out, 
+        /* weights */           (elem_t*) down_block4_conv22_w, 
         /* bias */              down_block4_conv22_b, 
-        /* output */            down_block4_conv22_concat2_temp+64,
+        /* output */            (elem_t*) down_block4_conv22_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block4_conv22_params.output_scale, 
         /* pool_size */         down_block4_conv22_params.pool_size, 
         /* pool_stride */       down_block4_conv22_params.pool_stride, 
@@ -756,7 +756,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // down block 4, conv_31
     start = read_cycles();
     tiled_matmul_auto(down_block4_conv31_params.I, down_block4_conv31_params.J, down_block4_conv31_params.K,
-        down_block4_conv22_concat2_out, down_block4_conv31_w, down_block4_conv31_b, down_block4_conv31_out,
+        (elem_t*) down_block4_conv22_concat2_out, (elem_t*) down_block4_conv31_w, down_block4_conv31_b, down_block4_conv31_out,
         down_block4_conv31_params.K, down_block4_conv31_params.J, down_block4_conv31_params.J, down_block4_conv31_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block4_conv31_params.output_scale, 0, true,
@@ -794,7 +794,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block4_conv32_b, 
         /* output */        (elem_t*)   up_block1_conv12_concat2_temp,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block4_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -832,7 +832,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block4_conv32_b, 
         /* output */        (elem_t*)   down_block5_conv22_concat2_temp,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block4_conv32_params.output_scale,
         /* pool_size */     down_block4_conv32_params.pool_size, 
         /* pool_stride */   down_block4_conv32_params.pool_stride, 
@@ -868,11 +868,11 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         false, false, false, false, false,
         
         /* input */             down_block5_conv22_concat2_temp, 
-        /* weights */           down_block5_conv1_w, 
+        /* weights */           (elem_t*) down_block5_conv1_w, 
         /* bias */              down_block5_conv1_b, 
-        /* output */            down_block5_conv22_concat2_temp+32,
+        /* output */            (elem_t*) down_block5_conv22_concat2_temp+32,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block5_conv1_params.output_scale, 
         /* pool_size */         down_block5_conv1_params.pool_size, 
         /* pool_stride */       down_block5_conv1_params.pool_stride, 
@@ -885,7 +885,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
 
     start = read_cycles();
     tiled_matmul_auto(down_block5_conv21_params.I, down_block5_conv21_params.J, down_block5_conv21_params.K,
-        down_block5_conv22_concat2_temp, down_block5_conv21_w, down_block5_conv21_b, down_block5_conv21_out,
+        down_block5_conv22_concat2_temp, (elem_t*) down_block5_conv21_w, down_block5_conv21_b, down_block5_conv21_out,
         96, down_block5_conv21_params.J, down_block5_conv21_params.J, down_block5_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block5_conv21_params.output_scale, 0, true,
@@ -916,12 +916,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             down_block5_conv21_out, 
-        /* weights */           down_block5_conv22_w, 
+        /* input */             (elem_t*) down_block5_conv21_out, 
+        /* weights */           (elem_t*) down_block5_conv22_w, 
         /* bias */              down_block5_conv22_b, 
-        /* output */            down_block5_conv22_concat2_temp+64,
+        /* output */            (elem_t*) down_block5_conv22_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             down_block5_conv22_params.output_scale, 
         /* pool_size */         down_block5_conv22_params.pool_size, 
         /* pool_stride */       down_block5_conv22_params.pool_stride, 
@@ -938,7 +938,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // down block 5, conv_31
     start = read_cycles();
     tiled_matmul_auto(down_block5_conv31_params.I, down_block5_conv31_params.J, down_block5_conv31_params.K,
-        down_block5_conv22_concat2_out, down_block5_conv31_w, down_block5_conv31_b, down_block5_conv31_out,
+        (elem_t*) down_block5_conv22_concat2_out, (elem_t*) down_block5_conv31_w, down_block5_conv31_b, down_block5_conv31_out,
         down_block5_conv31_params.K, down_block5_conv31_params.J, down_block5_conv31_params.J, down_block5_conv31_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, down_block5_conv31_params.output_scale, 0, true,
@@ -973,7 +973,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block5_conv32_b, 
         /* output */        (elem_t*)   down_block5_conv32_out_relu,
 
-        /* activation */    RELU, 
+        /* activation */    RELU_ACC, 
         /* scale */         down_block5_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -1006,10 +1006,10 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           0, 
         /* kernel_dim */        1, 
         false, false, false, false, false, 
-        /* input */             down_block5_conv32_out_relu, 
-        /* weights */           upsize_w, 
+        /* input */             (elem_t*) down_block5_conv32_out_relu, 
+        /* weights */           (elem_t*) upsize_w, 
         /* bias */              z_bias, 
-        /* output */            up_block1_upsize, 
+        /* output */            (elem_t*) up_block1_upsize, 
         /* activation */        NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // nearest neighbor upsample
@@ -1024,14 +1024,14 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           1, 
         /* kernel_dim */        2, 
         /* input */             up_block1_upsize, 
-        /* weights */           upsample_dw_w, 
+        /* weights */           (elem_t*) upsample_dw_w, 
         /* bias */              z_bias, 
-        /* output */            up_block1_upsample, 
+        /* output */            (elem_t*) up_block1_upsample, 
         /* activation */ NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // concatenate upsampled tensor 
     tiled_matmul_auto(600, 32, 32, 
-        up_block1_upsample, identity_32, z_bias, up_block1_conv12_concat2_temp+32,
+        up_block1_upsample, (elem_t*) identity_32, z_bias, up_block1_conv12_concat2_temp+32,
         32, 32, 1, 96,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, ACC_SCALE_IDENTITY, 0, true,
@@ -1048,7 +1048,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 1, conv_11
     start = read_cycles();
     tiled_matmul_auto(up_block1_conv11_params.I, up_block1_conv11_params.J, up_block1_conv11_params.K,
-        up_block1_conv12_concat2_temp, up_block1_conv11_w, up_block1_conv11_b, up_block1_conv11_out,
+        up_block1_conv12_concat2_temp, (elem_t*) up_block1_conv11_w, up_block1_conv11_b, up_block1_conv11_out,
         96, up_block1_conv11_params.J, up_block1_conv11_params.J, up_block1_conv11_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block1_conv11_params.output_scale, 0, true,
@@ -1081,12 +1081,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             up_block1_conv11_out, 
-        /* weights */           up_block1_conv12_w, 
+        /* input */             (elem_t*) up_block1_conv11_out, 
+        /* weights */           (elem_t*) up_block1_conv12_w, 
         /* bias */              up_block1_conv12_b, 
-        /* output */            up_block1_conv12_concat2_temp+64,
+        /* output */            (elem_t*) up_block1_conv12_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block1_conv12_params.output_scale, 
         /* pool_size */         up_block1_conv12_params.pool_size, 
         /* pool_stride */       up_block1_conv12_params.pool_stride, 
@@ -1104,7 +1104,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 1, conv_21
     start = read_cycles();
     tiled_matmul_auto(up_block1_conv21_params.I, up_block1_conv21_params.J, up_block1_conv21_params.K,
-        up_block1_conv12_concat2_out, up_block1_conv21_w, up_block1_conv21_b, up_block1_conv21_out,
+        (elem_t*) up_block1_conv12_concat2_out, (elem_t*) up_block1_conv21_w, up_block1_conv21_b, up_block1_conv21_out,
         up_block1_conv21_params.K, up_block1_conv21_params.J, up_block1_conv21_params.J, up_block1_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block1_conv21_params.output_scale, 0, true,
@@ -1134,12 +1134,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* kernel_dim */        up_block1_conv22_params.kernel_size,
         false, false, false, false, false,
         
-        /* input */             up_block1_conv21_out, 
-        /* weights */           up_block1_conv22_w, 
+        /* input */             (elem_t*) up_block1_conv21_out, 
+        /* weights */           (elem_t*) up_block1_conv22_w, 
         /* bias */              up_block1_conv22_b, 
-        /* output */            up_block1_conv22_out_relu,
+        /* output */            (elem_t*) up_block1_conv22_out_relu,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block1_conv22_params.output_scale, 
         /* pool_size */         up_block1_conv22_params.pool_size, 
         /* pool_stride */       up_block1_conv22_params.pool_stride, 
@@ -1168,10 +1168,10 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           0, 
         /* kernel_dim */        1, 
         false, false, false, false, false, 
-        /* input */             up_block1_conv22_out_relu, 
-        /* weights */           upsize_w, 
+        /* input */             (elem_t*) up_block1_conv22_out_relu, 
+        /* weights */           (elem_t*) upsize_w, 
         /* bias */              z_bias, 
-        /* output */            up_block2_upsize, 
+        /* output */            (elem_t*) up_block2_upsize, 
         /* activation */        NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // nearest neighbor upsample
@@ -1186,14 +1186,14 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           1, 
         /* kernel_dim */        2, 
         /* input */             up_block2_upsize, 
-        /* weights */           upsample_dw_w, 
+        /* weights */           (elem_t*) upsample_dw_w, 
         /* bias */              z_bias, 
-        /* output */            up_block2_upsample, 
+        /* output */            (elem_t*) up_block2_upsample, 
         /* activation */ NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // concatenate upsampled tensor 
     tiled_matmul_auto(2400, 32, 32, 
-        up_block2_upsample, identity_32, z_bias, up_block2_conv12_concat2_temp+32,
+        up_block2_upsample, (elem_t*) identity_32, z_bias, up_block2_conv12_concat2_temp+32,
         32, 32, 1, 96,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, ACC_SCALE_IDENTITY, 0, true,
@@ -1209,7 +1209,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 2, conv_11
     start = read_cycles();
     tiled_matmul_auto(up_block2_conv11_params.I, up_block2_conv11_params.J, up_block2_conv11_params.K,
-        up_block2_conv12_concat2_temp, up_block2_conv11_w, up_block2_conv11_b, up_block2_conv11_out,
+        up_block2_conv12_concat2_temp, (elem_t*) up_block2_conv11_w, up_block2_conv11_b, up_block2_conv11_out,
         96, up_block2_conv11_params.J, up_block2_conv11_params.J, up_block2_conv11_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block2_conv11_params.output_scale, 0, true,
@@ -1241,12 +1241,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             up_block2_conv11_out, 
-        /* weights */           up_block2_conv12_w, 
+        /* input */             (elem_t*) up_block2_conv11_out, 
+        /* weights */           (elem_t*) up_block2_conv12_w, 
         /* bias */              up_block2_conv12_b, 
-        /* output */            up_block2_conv12_concat2_temp+64,
+        /* output */            (elem_t*) up_block2_conv12_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block2_conv12_params.output_scale, 
         /* pool_size */         up_block2_conv12_params.pool_size, 
         /* pool_stride */       up_block2_conv12_params.pool_stride, 
@@ -1263,7 +1263,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 2, conv_21
     start = read_cycles();
     tiled_matmul_auto(up_block2_conv21_params.I, up_block2_conv21_params.J, up_block2_conv21_params.K,
-        up_block2_conv12_concat2_out, up_block2_conv21_w, up_block2_conv21_b, up_block2_conv21_out,
+        (elem_t*) up_block2_conv12_concat2_out, (elem_t*) up_block2_conv21_w, up_block2_conv21_b, up_block2_conv21_out,
         up_block2_conv21_params.K, up_block2_conv21_params.J, up_block2_conv21_params.J, up_block2_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block2_conv21_params.output_scale, 0, true,
@@ -1293,12 +1293,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* kernel_dim */        up_block2_conv22_params.kernel_size,
         false, false, false, false, false,
         
-        /* input */             up_block2_conv21_out, 
-        /* weights */           up_block2_conv22_w, 
+        /* input */             (elem_t*) up_block2_conv21_out, 
+        /* weights */           (elem_t*) up_block2_conv22_w, 
         /* bias */              up_block2_conv22_b, 
-        /* output */            up_block2_conv22_out_relu,
+        /* output */           (elem_t*) up_block2_conv22_out_relu,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block2_conv22_params.output_scale, 
         /* pool_size */         up_block2_conv22_params.pool_size, 
         /* pool_stride */       up_block2_conv22_params.pool_stride, 
@@ -1327,10 +1327,10 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           0, 
         /* kernel_dim */        1, 
         false, false, false, false, false, 
-        /* input */             up_block2_conv22_out_relu, 
-        /* weights */           upsize_w, 
+        /* input */             (elem_t*) up_block2_conv22_out_relu, 
+        /* weights */           (elem_t*) upsize_w, 
         /* bias */              z_bias, 
-        /* output */            up_block3_upsize, 
+        /* output */            (elem_t*) up_block3_upsize, 
         /* activation */        NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // nearest neighbor upsample
@@ -1345,14 +1345,14 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           1, 
         /* kernel_dim */        2, 
         /* input */             up_block3_upsize, 
-        /* weights */           upsample_dw_w, 
+        /* weights */           (elem_t*) upsample_dw_w, 
         /* bias */              z_bias, 
-        /* output */            up_block3_upsample, 
+        /* output */            (elem_t*) up_block3_upsample, 
         /* activation */ NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // concatenate upsampled tensor 
     tiled_matmul_auto(9600, 32, 32, 
-        up_block3_upsample, identity_32, z_bias, up_block3_conv12_concat2_temp+32,
+        up_block3_upsample, (elem_t*) identity_32, z_bias, up_block3_conv12_concat2_temp+32,
         32, 32, 1, 96,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, ACC_SCALE_IDENTITY, 0, true,
@@ -1369,7 +1369,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 3, conv_11
     start = read_cycles();
     tiled_matmul_auto(up_block3_conv11_params.I, up_block3_conv11_params.J, up_block3_conv11_params.K,
-        up_block3_conv12_concat2_temp, up_block3_conv11_w, up_block3_conv11_b, up_block3_conv11_out,
+        up_block3_conv12_concat2_temp, (elem_t*) up_block3_conv11_w, up_block3_conv11_b, up_block3_conv11_out,
         96, up_block3_conv11_params.J, up_block3_conv11_params.J, up_block3_conv11_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block3_conv11_params.output_scale, 0, true,
@@ -1401,12 +1401,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             up_block3_conv11_out, 
-        /* weights */           up_block3_conv12_w, 
+        /* input */             (elem_t*) up_block3_conv11_out, 
+        /* weights */           (elem_t*) up_block3_conv12_w, 
         /* bias */              up_block3_conv12_b, 
-        /* output */            up_block3_conv12_concat2_temp+64,
+        /* output */            (elem_t*) up_block3_conv12_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block3_conv12_params.output_scale, 
         /* pool_size */         up_block3_conv12_params.pool_size, 
         /* pool_stride */       up_block3_conv12_params.pool_stride, 
@@ -1423,7 +1423,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 3, conv_21
     start = read_cycles();
     tiled_matmul_auto(up_block3_conv21_params.I, up_block3_conv21_params.J, up_block3_conv21_params.K,
-        up_block3_conv12_concat2_out, up_block3_conv21_w, up_block3_conv21_b, up_block3_conv21_out,
+        (elem_t*) up_block3_conv12_concat2_out, (elem_t*) up_block3_conv21_w, up_block3_conv21_b, up_block3_conv21_out,
         up_block3_conv21_params.K, up_block3_conv21_params.J, up_block3_conv21_params.J, up_block3_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block3_conv21_params.output_scale, 0, true,
@@ -1453,12 +1453,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* kernel_dim */        up_block3_conv22_params.kernel_size,
         false, false, false, false, false,
         
-        /* input */             up_block3_conv21_out, 
-        /* weights */           up_block3_conv22_w, 
+        /* input */             (elem_t*) up_block3_conv21_out, 
+        /* weights */           (elem_t*) up_block3_conv22_w, 
         /* bias */              up_block3_conv22_b, 
-        /* output */            up_block3_conv22_out_relu,
+        /* output */            (elem_t*) up_block3_conv22_out_relu,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block3_conv22_params.output_scale, 
         /* pool_size */         up_block3_conv22_params.pool_size, 
         /* pool_stride */       up_block3_conv22_params.pool_stride, 
@@ -1487,10 +1487,10 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           0, 
         /* kernel_dim */        1, 
         false, false, false, false, false, 
-        /* input */             up_block3_conv22_out_relu, 
-        /* weights */           upsize_w, 
+        /* input */             (elem_t*) up_block3_conv22_out_relu, 
+        /* weights */           (elem_t*) upsize_w, 
         /* bias */              z_bias, 
-        /* output */            up_block4_upsize, 
+        /* output */            (elem_t*) up_block4_upsize, 
         /* activation */        NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // nearest neighbor upsample
@@ -1505,14 +1505,14 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* padding */           1, 
         /* kernel_dim */        2, 
         /* input */             up_block4_upsize, 
-        /* weights */           upsample_dw_w, 
+        /* weights */           (elem_t*) upsample_dw_w, 
         /* bias */              z_bias, 
-        /* output */            up_block4_upsample, 
+        /* output */            (elem_t*) up_block4_upsample, 
         /* activation */ NO_ACTIVATION, /* scale */ 1, /* pool_size */ 1, /* pool_stride */ 1, /* pool_padding */ 0, tiled_matmul_type);
 
     // concatenate upsampled tensor 
     tiled_matmul_auto(38400, 32, 32, 
-        up_block4_upsample, identity_32, z_bias, up_block4_conv12_concat2_temp+32,
+        up_block4_upsample, (elem_t*) identity_32, z_bias, up_block4_conv12_concat2_temp+32,
         32, 32, 1, 96,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, ACC_SCALE_IDENTITY, 0, true,
@@ -1528,7 +1528,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 4, conv_11
     start = read_cycles();
     tiled_matmul_auto(up_block4_conv11_params.I, up_block4_conv11_params.J, up_block4_conv11_params.K,
-        up_block4_conv12_concat2_temp, up_block4_conv11_w, up_block4_conv11_b, up_block4_conv11_out,
+        up_block4_conv12_concat2_temp, (elem_t*) up_block4_conv11_w, up_block4_conv11_b, up_block4_conv11_out,
         96, up_block4_conv11_params.J, up_block4_conv11_params.J, up_block4_conv11_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block4_conv11_params.output_scale, 0, true,
@@ -1560,12 +1560,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* out_stride */        96,
         false, false, false, false, false,
         
-        /* input */             up_block4_conv11_out, 
-        /* weights */           up_block4_conv12_w, 
+        /* input */             (elem_t*) up_block4_conv11_out, 
+        /* weights */           (elem_t*) up_block4_conv12_w, 
         /* bias */              up_block4_conv12_b, 
-        /* output */            up_block4_conv12_concat2_temp+64,
+        /* output */            (elem_t*) up_block4_conv12_concat2_temp+64,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block4_conv12_params.output_scale, 
         /* pool_size */         up_block4_conv12_params.pool_size, 
         /* pool_stride */       up_block4_conv12_params.pool_stride, 
@@ -1582,7 +1582,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // up block 4, conv_21
     start = read_cycles();
     tiled_matmul_auto(up_block4_conv21_params.I, up_block4_conv21_params.J, up_block4_conv21_params.K,
-        up_block4_conv12_concat2_out, up_block4_conv21_w, up_block4_conv21_b, up_block4_conv21_out,
+        (elem_t*) up_block4_conv12_concat2_out, (elem_t*) up_block4_conv21_w, up_block4_conv21_b, up_block4_conv21_out,
         up_block4_conv21_params.K, up_block4_conv21_params.J, up_block4_conv21_params.J, up_block4_conv21_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, up_block4_conv21_params.output_scale, 0, true,
@@ -1612,12 +1612,12 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* kernel_dim */        up_block4_conv22_params.kernel_size,
         false, false, false, false, false,
         
-        /* input */             up_block4_conv21_out, 
-        /* weights */           up_block4_conv22_w, 
+        /* input */             (elem_t*) up_block4_conv21_out, 
+        /* weights */           (elem_t*) up_block4_conv22_w, 
         /* bias */              up_block4_conv22_b, 
-        /* output */            up_block4_conv22_out_relu,
+        /* output */            (elem_t*) up_block4_conv22_out_relu,
 
-        /* activation */        RELU, 
+        /* activation */        RELU_ACC, 
         /* scale */             up_block4_conv22_params.output_scale, 
         /* pool_size */         up_block4_conv22_params.pool_size, 
         /* pool_stride */       up_block4_conv22_params.pool_stride, 
@@ -1633,7 +1633,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     // out block
     start = read_cycles();
     tiled_matmul_auto(out_conv_params.I, out_conv_params.J, out_conv_params.K,
-        up_block4_conv22_out_relu, out_conv1_w, out_conv1_b, out,
+        (elem_t*) up_block4_conv22_out_relu, (elem_t*) out_conv1_w, out_conv1_b, out,
         out_conv_params.K, out_conv_params.J, out_conv_params.J, out_conv_params.J,
         MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY, MVIN_SCALE_IDENTITY,
         NO_ACTIVATION, out_conv_params.output_scale, 0, true,

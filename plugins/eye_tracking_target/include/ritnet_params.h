@@ -1,7 +1,7 @@
 #ifndef RITNET_PARAMETERS_H
 #define RITNET_PARAMETERS_H
 
-#include <gemmini_params.h>
+#include "gemmini_params.h"
 #include <stdbool.h>
 
 

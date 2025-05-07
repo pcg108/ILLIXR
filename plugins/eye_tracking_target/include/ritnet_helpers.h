@@ -1,11 +1,11 @@
 #ifndef RITNET_HELPERS_H
 #define RITNET_HELPERS_H
 
-#include <gemmini_params.h>
+#include "gemmini_params.h"
 #include <stdbool.h>
 
 elem_t identity_kernel[1][1] row_align(1) = { { 1 } };
-elem_t z_bias[33] row_align(1) = { 0 };
+acc_t z_bias[33] row_align(1) = { 0 };
 
 static const elem_t upsize_w[32][32] row_align(1) = \
 {
