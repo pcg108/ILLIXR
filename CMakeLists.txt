@@ -178,6 +178,11 @@ pkg_check_modules(gl REQUIRED gl)
 
 # find_package(Eigen3 REQUIRED)
 add_definitions(-DEIGEN_USE_BLAS=1)
+set(NOFORTRAN "1")
+set(DYNAMIC_ARCH OFF)
+set(BUILD_WITHOUT_LAPACK OFF)
+set(BUILD_TESTING OFF)
+set(BUILD_BENCHMARKS OFF)
 add_subdirectory(${CMAKE_SOURCE_DIR}/eigen)
 
 #############
