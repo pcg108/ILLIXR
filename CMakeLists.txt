@@ -192,8 +192,6 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/OpenBLAS)
 
 
 # find_package(Eigen3 REQUIRED)
-add_definitions(-DEIGEN_USE_BLAS=1)
-add_subdirectory(${CMAKE_SOURCE_DIR}/eigen)
 
 #############
 # plugin specific dependencies that are used by several plugins
