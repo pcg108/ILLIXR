@@ -81,7 +81,7 @@ public:
     void copy_to_dma(void* data, int bytes) {
         std::unique_lock lock{dma_mutex};
         std::memcpy((void*) dma_ptr, data, bytes);
-        msync((void*) dma_ptr, bytes, MS_SYNC);
+        riscv_flush_range((void*)dma_ptr, bytes);
     }
 
 
@@ -131,6 +131,21 @@ private:
             reg_write32(GRAPHICS_IN, packets[i]);
         }
         // std::cout << "[illixr guest] finished sending packets" << std::endl;
+    }
+
+    void riscv_flush_cache_line(void* addr) {
+        asm volatile ("cbo.flush %0" : : "r" (addr));
+    }
+
+    void riscv_flush_range(void* addr, size_t size) {
+        const size_t cache_line_size = 64; 
+        uintptr_t start = (uintptr_t)addr;
+        uintptr_t end = start + size;
+        start &= ~(cache_line_size - 1); 
+
+        for (uintptr_t ptr = start; ptr < end; ptr += cache_line_size) {
+            riscv_flush_cache_line((void*)ptr);
+        }
     }
 
 
