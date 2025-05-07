@@ -1,6 +1,3 @@
-[submodule "eigen"]
-	path = eigen
-	url = https://github.com/libigl/eigen.git
 [submodule "OpenBLAS"]
 	path = OpenBLAS
 	url = https://github.com/zekailin00/OpenBLAS.git
