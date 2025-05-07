@@ -3,15 +3,11 @@ set(PLUGIN_NAME plugin.eye_tracking_target${ILLIXR_BUILD_SUFFIX})
 
 find_package(onnxruntime REQUIRED)
 
-add_library(ritnet OBJECT
-    include/ritnet.c
-)
-set_source_files_properties(include/ritnet.c PROPERTIES LANGUAGE C)
-target_include_directories(ritnet PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Main plugin target
 add_library(${PLUGIN_NAME} SHARED 
     plugin.cpp
+    ritnet.hpp
     ../../include/illixr/plugin.hpp
     ../../include/illixr/opencv_data_types.hpp
     ../../include/illixr/data_format.hpp

@@ -7,6 +7,8 @@
 #include "illixr/switchboard.hpp"
 #include "illixr/eye_tracking_target.hpp"
 
+#include "ritnet.hpp"
+
 #include <onnxruntime_cxx_api.h>
 #include <opencv2/opencv.hpp>  
 #include <opencv2/imgcodecs.hpp>  
@@ -16,9 +18,6 @@
 #include <filesystem>
 #include <shared_mutex>
 
-extern "C" {
-    #include "include/ritnet.h"
-}
 
 using namespace ILLIXR;
 
