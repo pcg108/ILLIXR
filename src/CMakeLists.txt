@@ -15,10 +15,6 @@ add_library(plugin.main${ILLIXR_BUILD_SUFFIX} SHARED
         )
 
 
-add_definitions(-DEIGEN_USE_BLAS=1)
-set(BUILD_TESTING OFF)
-add_subdirectory(${CMAKE_SOURCE_DIR}/eigen)
-
 ##############
 # yaml parser
 ##############
