@@ -1,7 +1,7 @@
 #pragma once
 
 #undef Success // For 'Success' conflict
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <GL/gl.h>
 #include <utility>
 //#undef Complex // For 'Complex' conflict
