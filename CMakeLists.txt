@@ -190,11 +190,10 @@ set(BUILD_BENCHMARKS OFF)
 set(TARGET "RISCV64_ZVL256B")
 add_subdirectory(${CMAKE_SOURCE_DIR}/OpenBLAS)
 
-add_definitions(-DEIGEN_USE_BLAS=1)
-add_subdirectory(${CMAKE_SOURCE_DIR}/eigen)
+# add_definitions(-DEIGEN_USE_BLAS=1)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/eigen)
 
-
-# find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 #############
 # plugin specific dependencies that are used by several plugins
