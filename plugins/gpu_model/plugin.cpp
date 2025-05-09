@@ -134,7 +134,7 @@ private:
     }
 
     void riscv_flush_cache_line(void* addr) {
-        asm volatile ("cbo.flush %0" : : "r" (addr));
+        // asm volatile ("cbo.flush %0" : : "r" (addr));
     }
 
     void riscv_flush_range(void* addr, size_t size) {
