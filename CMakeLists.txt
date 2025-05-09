@@ -181,14 +181,15 @@ find_package(X11 REQUIRED)
 
 pkg_check_modules(gl REQUIRED gl)
 
-set(BUILD_TESTING OFF)
+# set(BUILD_TESTING OFF)
+# set(NOFORTRAN "1")
+# set(DYNAMIC_ARCH OFF)
+# set(BUILD_WITHOUT_LAPACK ON)
+# set(BUILD_BENCHMARKS OFF)
+# set(TARGET "RISCV64_ZVL256B")
+# add_subdirectory(${CMAKE_SOURCE_DIR}/OpenBLAS)
 
-set(NOFORTRAN "1")
-set(DYNAMIC_ARCH OFF)
-set(BUILD_WITHOUT_LAPACK ON)
-set(BUILD_BENCHMARKS OFF)
-set(TARGET "RISCV64_ZVL256B")
-add_subdirectory(${CMAKE_SOURCE_DIR}/OpenBLAS)
+find_package(OpenBLAS REQUIRED)
 
 add_definitions(-DEIGEN_USE_BLAS=1)
 find_package(Eigen3 REQUIRED)
