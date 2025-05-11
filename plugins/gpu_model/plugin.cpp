@@ -57,7 +57,7 @@ public:
             // std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
 
-        std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
+        // std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
 
     }
@@ -74,7 +74,7 @@ public:
             // std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
 
-        std::cout << "[illixr guest] compute delaying for: " << response_buffer[0] << std::endl;
+        // std::cout << "[illixr guest] compute delaying for: " << response_buffer[0] << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
     }
 
