@@ -39,7 +39,7 @@
         setenv(#ENV, std::to_string(config[#NAME].as<long>()).c_str(), true);  \
     }
 
-constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{60};
+constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{600};
 [[maybe_unused]] constexpr unsigned int ILLIXR_PRE_SLEEP_DURATION{10};
 
 template<typename T>
