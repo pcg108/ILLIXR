@@ -44,7 +44,9 @@ public:
         
         // duration begin            = time_since_start;
         ullong lookup_time = _imu_time->time.time_since_epoch().count(); // std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
-        std::cout << " lookup: " << lookup_time << std::endl;
+        // std::cout << " lookup: " << lookup_time << std::endl;
+
+        
 
         // if (lookup_time < dataset_first_time) {
         //     return;
@@ -79,6 +81,8 @@ public:
             // Most recent
             nearest_row = std::prev(after_nearest_row, 1);
         }
+
+        std::cout << " offline_cam: " << nearest_row->first << " from_imu: " << lookup_time << std::endl;
 
         if (last_ts != nearest_row->first) {
             last_ts = nearest_row->first;

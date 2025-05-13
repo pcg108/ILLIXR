@@ -49,6 +49,8 @@ protected:
         _m_imu.put(_m_imu.allocate<imu_type>(imu_type{real_now, (sensor_datum.imu0.angular_v), (sensor_datum.imu0.linear_a)}));
         ++_m_sensor_data_it;
 
+        std::cout << " offline_imu: " << dataset_now << std::endl;
+
         time_point          imu_now(std::chrono::duration<long, std::nano>{dataset_now});
         _m_imu_time.put(_m_imu_time.allocate<imu_time>(imu_time{imu_now}));
     }
