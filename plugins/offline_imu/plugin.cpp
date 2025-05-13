@@ -18,6 +18,7 @@ public:
         , _m_sensor_data_it{_m_sensor_data.cbegin()}
         , _m_sb{pb->lookup_impl<switchboard>()}
         , _m_imu{_m_sb->get_writer<imu_type>("imu")}
+        , _m_imu_time{_m_sb->get_writer<imu_type>("imu_time")}
         , dataset_first_time{_m_sensor_data_it->first}
         , dataset_now{0}
         , imu_cam_log{record_logger_}
@@ -47,6 +48,8 @@ protected:
 
         _m_imu.put(_m_imu.allocate<imu_type>(imu_type{real_now, (sensor_datum.imu0.angular_v), (sensor_datum.imu0.linear_a)}));
         ++_m_sensor_data_it;
+
+        _m_imu_time.put(_m_imu_time.allocate<ullong>(dataset_now));
     }
 
 private:
@@ -54,6 +57,8 @@ private:
     std::map<ullong, sensor_types>::const_iterator _m_sensor_data_it;
     const std::shared_ptr<switchboard>             _m_sb;
     switchboard::writer<imu_type>                  _m_imu;
+
+    switchboard::writer<ullong>                    _m_imu_time;
 
     // Timestamp of the first IMU value from the dataset
     ullong dataset_first_time;
