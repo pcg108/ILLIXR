@@ -20,7 +20,8 @@ public:
         , dataset_first_time{_m_sensor_data.cbegin()->first}
         , last_ts{0}
         , _m_rtc{pb->lookup_impl<RelativeClock>()}
-        , next_row{_m_sensor_data.cbegin()} {
+        , next_row{_m_sensor_data.cbegin()}
+        , _m_imu{sb->get_reader<imu_type>("imu")} {
         spdlogger(std::getenv("OFFLINE_CAM_LOG_LEVEL"));
     }
 
@@ -33,7 +34,13 @@ public:
     }
 
     void _p_one_iteration() override {
-        duration time_since_start = _m_rtc->now().time_since_epoch();
+        // duration time_since_start = _m_rtc->now().time_since_epoch();
+        imu_val = _m_imu.get_ro_nullable();
+        if (imu_val == nullptr) {
+            std::cout << "[offline-cam] ERROR trying to read camera without IMU" << std::endl;
+        }
+        duration time_since_start = imu_val->time.time_since_epoch();
+
         // duration begin            = time_since_start;
         ullong lookup_time = std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
         std::map<ullong, sensor_types>::const_iterator nearest_row;
@@ -91,6 +98,9 @@ private:
     ullong                                         last_ts;
     std::shared_ptr<RelativeClock>                 _m_rtc;
     std::map<ullong, sensor_types>::const_iterator next_row;
+
+    switchboard::reader<imu_type>                   _m_imu;
+    switchboard::ptr<const imu_type>                imu_val;
 };
 
 PLUGIN_MAIN(offline_cam)
