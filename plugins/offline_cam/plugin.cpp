@@ -58,6 +58,9 @@ public:
         // "std::map::upper_bound" returns an iterator to the first pair whose key is GREATER than the argument.
         // auto after_nearest_row = _m_sensor_data.upper_bound(lookup_time);
         auto after_nearest_row = _m_sensor_data.find(lookup_time);
+        if (after_nearest_row == _m_sensor_data.cend()) {
+            return;
+        }
 
 
         if (after_nearest_row == _m_sensor_data.cend()) {
