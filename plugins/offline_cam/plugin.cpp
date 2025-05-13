@@ -36,7 +36,7 @@ public:
     void _p_one_iteration() override {
         // duration time_since_start = _m_rtc->now().time_since_epoch();
         imu_time = _m_imu_time.get_ro_nullable();
-        if (imu_val == nullptr) {
+        if (imu_time == nullptr) {
             std::cout << "[offline-cam] Trying to read camera without IMU" << std::endl;
             return;
         }
@@ -44,7 +44,7 @@ public:
         
         // duration begin            = time_since_start;
         ullong lookup_time = imu_time; // std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
-        std::cout << " lookup: " << imu_time << std::endl;
+        std::cout << " lookup: " << lookup_time << std::endl;
 
         // if (lookup_time < dataset_first_time) {
         //     return;
