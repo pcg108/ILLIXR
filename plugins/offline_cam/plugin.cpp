@@ -21,7 +21,7 @@ public:
         , last_ts{0}
         , _m_rtc{pb->lookup_impl<RelativeClock>()}
         , next_row{_m_sensor_data.cbegin()}
-        , _m_imu_time{sb->get_reader<ullong>("imu_time")} {
+        , _m_imu_time{sb->get_reader<time_point>("imu_time")} {
         spdlogger(std::getenv("OFFLINE_CAM_LOG_LEVEL"));
     }
 
@@ -43,7 +43,7 @@ public:
         // duration time_since_start = imu_val->time.time_since_epoch();
         
         // duration begin            = time_since_start;
-        ullong lookup_time = imu_time; // std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
+        ullong lookup_time = imu_time.time_since_epoch().count(); // std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
         std::cout << " lookup: " << lookup_time << std::endl;
 
         // if (lookup_time < dataset_first_time) {
@@ -107,8 +107,8 @@ private:
     std::shared_ptr<RelativeClock>                 _m_rtc;
     std::map<ullong, sensor_types>::const_iterator next_row;
 
-    switchboard::reader<ullong>                   _m_imu_time;
-    switchboard::ptr<const ullong>                imu_val;
+    switchboard::reader<time_point>                   _m_imu_time;
+    switchboard::ptr<const time_point>                imu_time;
 };
 
 PLUGIN_MAIN(offline_cam)
