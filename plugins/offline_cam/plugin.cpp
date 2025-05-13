@@ -35,15 +35,15 @@ public:
 
     void _p_one_iteration() override {
         // duration time_since_start = _m_rtc->now().time_since_epoch();
-        imu_time = _m_imu_time.get_ro_nullable();
-        if (imu_time == nullptr) {
+        _imu_time = _m_imu_time.get_ro_nullable();
+        if (_imu_time == nullptr) {
             std::cout << "[offline-cam] Trying to read camera without IMU" << std::endl;
             return;
         }
         // duration time_since_start = imu_val->time.time_since_epoch();
         
         // duration begin            = time_since_start;
-        ullong lookup_time = imu_time->time.time_since_epoch().count(); // std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
+        ullong lookup_time = _imu_time->time.time_since_epoch().count(); // std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
         std::cout << " lookup: " << lookup_time << std::endl;
 
         // if (lookup_time < dataset_first_time) {
@@ -108,7 +108,7 @@ private:
     std::map<ullong, sensor_types>::const_iterator next_row;
 
     switchboard::reader<imu_time>                   _m_imu_time;
-    switchboard::ptr<const imu_time>                imu_time;
+    switchboard::ptr<const imu_time>                _imu_time;
 };
 
 PLUGIN_MAIN(offline_cam)
