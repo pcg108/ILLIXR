@@ -307,7 +307,7 @@ public:
                                 time_taken = get_timestamp(twQueryPool);
                                 std::cout << "[ILLIXR host server] tw time: " << time_taken / 1e6 << std::endl;
 
-                                bytes_written = save_frame(float_data[9], float_data[10]);
+                                bytes_written = save_frame(float_data);
 
                                 response[0] = 2; // responding with 2 packets
                                 response[1] = time_taken;
@@ -651,7 +651,7 @@ private:
     }
 
 
-    int save_frame(float x, float y) {
+    int save_frame(uint32_t* float_data) {
 
         // create image in host memory 
         VkImage dstImage;
@@ -741,7 +741,16 @@ private:
         }
 
         
-        std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%0.2f_%0.2f.ppm", x, y);
+        std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f.ppm", 
+                                                                                    float_data[2],
+                                                                                    float_data[3],
+                                                                                    float_data[4],
+                                                                                    float_data[5],
+                                                                                    float_data[6],
+                                                                                    float_data[7],
+                                                                                    float_data[8],
+                                                                                    float_data[9],
+                                                                                    float_data[10]);
         const char* filename = fname.c_str();
 
         std::ofstream file(filename, std::ofstream::binary);

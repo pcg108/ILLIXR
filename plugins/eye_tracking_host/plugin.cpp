@@ -59,8 +59,8 @@ public:
         }
 
 
-    void print_first_20_rows(const cv::Mat& mat) {
-        int rows_to_print = std::min(20, mat.rows);
+    void print_first_5_rows(const cv::Mat& mat) {
+        int rows_to_print = std::min(5, mat.rows);
         cv::Mat first_rows = mat(cv::Range(0, rows_to_print), cv::Range::all());
     
         std::cout << "First " << rows_to_print << " rows of matrix:\n" << first_rows << std::endl;
@@ -75,7 +75,7 @@ public:
         }
         std::memcpy(input_image_.data(), img.ptr<float>(), total_elements * sizeof(float));
 
-        // print_first_20_rows(img);
+        print_first_5_rows(img);
 
         const char* input_names[] = {"x"};
         const char* output_names[] = {"conv2d_41"};

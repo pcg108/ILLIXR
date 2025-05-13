@@ -18,7 +18,7 @@ while True:
     for fovea_position in fovea_positions:
         
         # render
-        float_values = np.concatenate((np.array([0, 0], dtype=np.float32), np.array(fixed_pose, dtype=np.float32), np.array(fovea_position, dtype=np.float32)))
+        float_values = np.concatenate((np.array([2, 0], dtype=np.float32), np.array(fixed_pose, dtype=np.float32), np.array(fovea_position, dtype=np.float32)))
         # print(float_values)
         data = float_values.tobytes()
 
@@ -28,14 +28,14 @@ while True:
         print("Received time, bytes:", d1, d2)
 
         # timewarp
-        float_values = np.concatenate((np.array([1, 0], dtype=np.float32), np.array(fixed_pose, dtype=np.float32), np.array(fovea_position, dtype=np.float32)))
-        # print(float_values)
-        data = float_values.tobytes()
+        # float_values = np.concatenate((np.array([1, 0], dtype=np.float32), np.array(fixed_pose, dtype=np.float32), np.array(fovea_position, dtype=np.float32)))
+        # # print(float_values)
+        # data = float_values.tobytes()
 
-        sample_conn.sendall(data)
-        data = sample_conn.recv(16)
-        d1, d2 = struct.unpack('dd', data)
-        print("Received time, bytes:", d1, d2)
+        # sample_conn.sendall(data)
+        # data = sample_conn.recv(16)
+        # d1, d2 = struct.unpack('dd', data)
+        # print("Received time, bytes:", d1, d2)
 
 # with open(POSE_FILE, newline='') as csvfile:
 #     csv_reader = csv.reader(csvfile)
