@@ -43,11 +43,12 @@ public:
         duration time_since_start = imu_val->time.time_since_epoch();
         
         // duration begin            = time_since_start;
-        ullong lookup_time = std::chrono::nanoseconds{time_since_start}.count(); //+ dataset_first_time;
+        ullong lookup_time = std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
+        std::cout << " lookup: " << lookup_time << std::endl;
 
-        if (lookup_time < dataset_first_time) {
-            return;
-        }
+        // if (lookup_time < dataset_first_time) {
+        //     return;
+        // }
 
         // std::cout << "[offline-cam] lookup time: " << lookup_time << std::endl;
         std::map<ullong, sensor_types>::const_iterator nearest_row;
