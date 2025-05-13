@@ -56,7 +56,9 @@ public:
         std::map<ullong, sensor_types>::const_iterator nearest_row;
 
         // "std::map::upper_bound" returns an iterator to the first pair whose key is GREATER than the argument.
-        auto after_nearest_row = _m_sensor_data.upper_bound(lookup_time);
+        // auto after_nearest_row = _m_sensor_data.upper_bound(lookup_time);
+        auto after_nearest_row = _m_sensor_data.find(lookup_time);
+
 
         if (after_nearest_row == _m_sensor_data.cend()) {
 #ifndef NDEBUG
