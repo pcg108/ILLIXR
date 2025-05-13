@@ -37,7 +37,8 @@ public:
         // duration time_since_start = _m_rtc->now().time_since_epoch();
         imu_val = _m_imu.get_ro_nullable();
         if (imu_val == nullptr) {
-            std::cout << "[offline-cam] ERROR trying to read camera without IMU" << std::endl;
+            std::cout << "[offline-cam] Trying to read camera without IMU" << std::endl;
+            return;
         }
         duration time_since_start = imu_val->time.time_since_epoch();
 
