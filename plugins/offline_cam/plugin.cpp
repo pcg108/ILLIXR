@@ -43,6 +43,7 @@ public:
 
         // duration begin            = time_since_start;
         ullong lookup_time = std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
+        std::cout << "[offline-cam] lookup time: " << lookup_time << std::endl;
         std::map<ullong, sensor_types>::const_iterator nearest_row;
 
         // "std::map::upper_bound" returns an iterator to the first pair whose key is GREATER than the argument.
