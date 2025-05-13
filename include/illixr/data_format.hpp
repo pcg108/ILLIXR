@@ -18,7 +18,7 @@ using ullong = unsigned long long;
 struct imu_time : switchboard::event {
     time_point      time;
     imu_time(time_point time_)
-        : time{time_}
+        : time{time_} { }
 }; 
 
 struct imu_type : switchboard::event {
