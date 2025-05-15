@@ -47,6 +47,7 @@ public:
             // We are running out of the dataset and the loop will stop next time.
         } else if (after_nearest_row == _m_sensor_data.cbegin()) {
             // Should not happen because lookup_time is bigger than dataset_first_time
+            return std::nullopt;
         } else {
             // Most recent
             nearest_row = std::prev(after_nearest_row, 1);
