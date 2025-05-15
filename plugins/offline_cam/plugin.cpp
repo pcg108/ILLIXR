@@ -27,7 +27,7 @@ public:
         ullong lookup_time = imu_time.time_since_epoch().count();
 
 
-        std::cout << "lookup time: " << lookup_time << std::endl;
+        // std::cout << "lookup time: " << lookup_time << std::endl;
 
         if (lookup_time < dataset_first_time) {
             return std::nullopt;
@@ -53,7 +53,7 @@ public:
             nearest_row = std::prev(after_nearest_row, 1);
         }
 
-        std::cout << " offline_cam: " << nearest_row->first << " from_imu: " << lookup_time << std::endl;
+        // std::cout << " offline_cam: " << nearest_row->first << " from_imu: " << lookup_time << std::endl;
 
         if (last_ts != nearest_row->first) {
             last_ts = nearest_row->first;
