@@ -26,6 +26,9 @@ public:
     std::optional<cam_type> get_cam_reading(time_point imu_time) {
         ullong lookup_time = imu_time.time_since_epoch().count();
 
+
+        std::cout << "lookup time: " << lookup_time << std::endl;
+
         if (lookup_time < dataset_first_time) {
             return std::nullopt;
         }
