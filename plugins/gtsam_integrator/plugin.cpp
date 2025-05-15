@@ -49,7 +49,7 @@ public:
     }
 
     void callback(const switchboard::ptr<const imu_type>& datum) {
-        _imu_vec.emplace_back(datum->time, datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
+        _imu_vec.emplace_back(datum->time, datum->imu_real_time, datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 
         clean_imu_vec(datum->time);
         propagate_imu_values(datum->time);
