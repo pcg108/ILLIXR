@@ -66,6 +66,7 @@ public:
                 img1,
             };
         }
+        return std::nullopt;
     }
 
 
