@@ -23,17 +23,17 @@ public:
     , next_row{_m_sensor_data.cbegin()} 
     { }
         
-    cam_type get_cam_reading(time_point imu_time) {
+    std::optional<cam_type> get_cam_reading(time_point imu_time) {
         ullong lookup_time = imu_time.time_since_epoch().count();
 
         if (lookup_time < dataset_first_time) {
-            return;
+            return std::nullopt;
         }
 
         std::map<ullong, sensor_types>::const_iterator nearest_row;
         auto after_nearest_row = _m_sensor_data.find(lookup_time);
         if (after_nearest_row == _m_sensor_data.cend()) {
-            return;
+            return std::nullopt;
         }
 
         if (after_nearest_row == _m_sensor_data.cend()) {
