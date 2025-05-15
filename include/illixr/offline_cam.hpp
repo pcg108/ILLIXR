@@ -10,7 +10,7 @@ typedef unsigned long long ullong;
 
 class offline_cam : public phonebook::service {
 public:
-    [[nodiscard]] virtual std::optional<cam_type> get_cam_reading(ullong imu_time)  = 0;
+    [[nodiscard]] virtual std::optional<cam_type> get_cam_reading(time_point imu_time)  = 0;
 
     ~offline_cam() override = default;
 };
