@@ -21,12 +21,8 @@ public:
     , last_ts{0}
     , _m_rtc{pb->lookup_impl<RelativeClock>()}
     , next_row{_m_sensor_data.cbegin()} 
-    {
-        spdlogger(std::getenv("OFFLINE_CAM_LOG_LEVEL"));
-    }
+    { }
         
-    
-
     cam_type get_cam_reading(time_point imu_time) {
         ullong lookup_time = imu_time.time_since_epoch().count();
 
@@ -41,11 +37,6 @@ public:
         }
 
         if (after_nearest_row == _m_sensor_data.cend()) {
-#ifndef NDEBUG
-            spdlog::get(name)->warn("Running out of the dataset! Time {} ({} + {}) after last datum {}", lookup_time,
-                                    _m_rtc->now().time_since_epoch().count(), dataset_first_time,
-                                    _m_sensor_data.rbegin()->first);
-#endif
             // Handling the last camera images. There's no more rows after the nearest_row, so we set after_nearest_row
             // to be nearest_row to avoiding sleeping at the end.
             nearest_row       = std::prev(after_nearest_row, 1);
@@ -54,11 +45,6 @@ public:
             internal_stop();
         } else if (after_nearest_row == _m_sensor_data.cbegin()) {
             // Should not happen because lookup_time is bigger than dataset_first_time
-#ifndef NDEBUG
-            spdlog::get(name)->warn("Time {} ({} + {}) before first datum {}", lookup_time,
-                                    _m_rtc->now().time_since_epoch().count(), dataset_first_time,
-                                    _m_sensor_data.cbegin()->first);
-#endif
         } else {
             // Most recent
             nearest_row = std::prev(after_nearest_row, 1);
