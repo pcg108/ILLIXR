@@ -18,7 +18,6 @@ public:
         , _m_sensor_data_it{_m_sensor_data.cbegin()}
         , _m_sb{pb->lookup_impl<switchboard>()}
         , _m_imu{_m_sb->get_writer<imu_type>("imu")}
-        , _m_imu_time{_m_sb->get_writer<imu_time>("imu_time")}
         , dataset_first_time{_m_sensor_data_it->first}
         , dataset_now{0}
         , imu_cam_log{record_logger_}
@@ -46,13 +45,12 @@ protected:
         time_point          real_now(std::chrono::duration<long, std::nano>{dataset_now - dataset_first_time});
         const sensor_types& sensor_datum = _m_sensor_data_it->second;
 
-        _m_imu.put(_m_imu.allocate<imu_type>(imu_type{real_now, (sensor_datum.imu0.angular_v), (sensor_datum.imu0.linear_a)}));
+        time_point          imu_now(std::chrono::duration<long, std::nano>{dataset_now});
+
+        _m_imu.put(_m_imu.allocate<imu_type>(imu_type{real_now, imu_now, (sensor_datum.imu0.angular_v), (sensor_datum.imu0.linear_a)}));
         ++_m_sensor_data_it;
 
         std::cout << " offline_imu: " << dataset_now << std::endl;
-
-        time_point          imu_now(std::chrono::duration<long, std::nano>{dataset_now});
-        _m_imu_time.put(_m_imu_time.allocate<imu_time>(imu_time{imu_now}));
     }
 
 private:
@@ -61,7 +59,6 @@ private:
     const std::shared_ptr<switchboard>             _m_sb;
     switchboard::writer<imu_type>                  _m_imu;
 
-    switchboard::writer<imu_time>                    _m_imu_time;
 
     // Timestamp of the first IMU value from the dataset
     ullong dataset_first_time;

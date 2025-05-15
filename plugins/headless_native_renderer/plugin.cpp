@@ -69,7 +69,7 @@ public:
 
         uint32_t response_buffer[5];
 
-        eye_position_type send_eye_pos  = et->get_eye_position();
+        eye_position_type send_eye_pos  = eye_position_type{_m_clock->now(), 0.0, 0.0}; // et->get_eye_position();
 
         uint64_t before_render_pose = rdcycle();
 

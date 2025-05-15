@@ -4,120 +4,106 @@
 #include "illixr/relative_clock.hpp"
 #include "illixr/threadloop.hpp"
 
+#include "illixr/offline_cam.hpp"
+
 #include <chrono>
 #include <shared_mutex>
 #include <thread>
 
 using namespace ILLIXR;
 
-class offline_cam : public threadloop {
-public:
-    offline_cam(const std::string& name_, phonebook* pb_)
-        : threadloop{name_, pb_}
+class offline_cam_impl : public offline_cam {
+    public:
+        explicit offline_cam_impl(const phonebook* const pb)
         , sb{pb->lookup_impl<switchboard>()}
-        , _m_cam_publisher{sb->get_writer<cam_type>("cam")}
         , _m_sensor_data{load_data()}
         , dataset_first_time{_m_sensor_data.cbegin()->first}
         , last_ts{0}
         , _m_rtc{pb->lookup_impl<RelativeClock>()}
-        , next_row{_m_sensor_data.cbegin()}
-        , _m_imu_time{sb->get_reader<imu_time>("imu_time")} {
-        spdlogger(std::getenv("OFFLINE_CAM_LOG_LEVEL"));
-    }
-
-    skip_option _p_should_skip() override {
-        if (true) {
-            return skip_option::run;
-        } else {
-            return skip_option::stop;
+        , next_row{_m_sensor_data.cbegin()} 
+        {
+            spdlogger(std::getenv("OFFLINE_CAM_LOG_LEVEL"));
         }
-    }
-
-    void _p_one_iteration() override {
-        // duration time_since_start = _m_rtc->now().time_since_epoch();
-        _imu_time = _m_imu_time.get_ro_nullable();
-        if (_imu_time == nullptr) {
-            std::cout << "[offline-cam] Trying to read camera without IMU" << std::endl;
-            return;
-        }
-        // duration time_since_start = imu_val->time.time_since_epoch();
         
-        // duration begin            = time_since_start;
-        ullong lookup_time = _imu_time->time.time_since_epoch().count(); // std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
-        // std::cout << " lookup: " << lookup_time << std::endl;
+    
 
-        
+        cam_type get_cam_reading(time_point imu_time) {
+            ullong lookup_time = imu_time.time_since_epoch().count();
 
-        // if (lookup_time < dataset_first_time) {
-        //     return;
-        // }
+            if (lookup_time < dataset_first_time) {
+                return;
+            }
 
-        // std::cout << "[offline-cam] lookup time: " << lookup_time << std::endl;
-        std::map<ullong, sensor_types>::const_iterator nearest_row;
+            std::map<ullong, sensor_types>::const_iterator nearest_row;
+            auto after_nearest_row = _m_sensor_data.find(lookup_time);
+            if (after_nearest_row == _m_sensor_data.cend()) {
+                return;
+            }
 
-        // "std::map::upper_bound" returns an iterator to the first pair whose key is GREATER than the argument.
-        // auto after_nearest_row = _m_sensor_data.upper_bound(lookup_time);
-        auto after_nearest_row = _m_sensor_data.find(lookup_time);
-        if (after_nearest_row == _m_sensor_data.cend()) {
-            return;
+            if (after_nearest_row == _m_sensor_data.cend()) {
+    #ifndef NDEBUG
+                spdlog::get(name)->warn("Running out of the dataset! Time {} ({} + {}) after last datum {}", lookup_time,
+                                        _m_rtc->now().time_since_epoch().count(), dataset_first_time,
+                                        _m_sensor_data.rbegin()->first);
+    #endif
+                // Handling the last camera images. There's no more rows after the nearest_row, so we set after_nearest_row
+                // to be nearest_row to avoiding sleeping at the end.
+                nearest_row       = std::prev(after_nearest_row, 1);
+                after_nearest_row = nearest_row;
+                // We are running out of the dataset and the loop will stop next time.
+                internal_stop();
+            } else if (after_nearest_row == _m_sensor_data.cbegin()) {
+                // Should not happen because lookup_time is bigger than dataset_first_time
+    #ifndef NDEBUG
+                spdlog::get(name)->warn("Time {} ({} + {}) before first datum {}", lookup_time,
+                                        _m_rtc->now().time_since_epoch().count(), dataset_first_time,
+                                        _m_sensor_data.cbegin()->first);
+    #endif
+            } else {
+                // Most recent
+                nearest_row = std::prev(after_nearest_row, 1);
+            }
+
+            std::cout << " offline_cam: " << nearest_row->first << " from_imu: " << lookup_time << std::endl;
+
+            if (last_ts != nearest_row->first) {
+                last_ts = nearest_row->first;
+
+                auto img0 = nearest_row->second.cam0.load();
+                auto img1 = nearest_row->second.cam1.load();
+
+                time_point expected_real_time_given_dataset_time(
+                    std::chrono::duration<long, std::nano>{nearest_row->first - dataset_first_time});
+
+                return cam_type{
+                    expected_real_time_given_dataset_time,
+                    img0,
+                    img1,
+                }
+            }
         }
 
 
-        if (after_nearest_row == _m_sensor_data.cend()) {
-#ifndef NDEBUG
-            spdlog::get(name)->warn("Running out of the dataset! Time {} ({} + {}) after last datum {}", lookup_time,
-                                    _m_rtc->now().time_since_epoch().count(), dataset_first_time,
-                                    _m_sensor_data.rbegin()->first);
-#endif
-            // Handling the last camera images. There's no more rows after the nearest_row, so we set after_nearest_row
-            // to be nearest_row to avoiding sleeping at the end.
-            nearest_row       = std::prev(after_nearest_row, 1);
-            after_nearest_row = nearest_row;
-            // We are running out of the dataset and the loop will stop next time.
-            internal_stop();
-        } else if (after_nearest_row == _m_sensor_data.cbegin()) {
-            // Should not happen because lookup_time is bigger than dataset_first_time
-#ifndef NDEBUG
-            spdlog::get(name)->warn("Time {} ({} + {}) before first datum {}", lookup_time,
-                                    _m_rtc->now().time_since_epoch().count(), dataset_first_time,
-                                    _m_sensor_data.cbegin()->first);
-#endif
-        } else {
-            // Most recent
-            nearest_row = std::prev(after_nearest_row, 1);
-        }
 
-        std::cout << " offline_cam: " << nearest_row->first << " from_imu: " << lookup_time << std::endl;
+    private:
+        const std::shared_ptr<switchboard>             sb;
+        const std::map<ullong, sensor_types>           _m_sensor_data;
+        ullong                                         dataset_first_time;
+        ullong                                         last_ts;
+        std::shared_ptr<RelativeClock>                 _m_rtc;
+        std::map<ullong, sensor_types>::const_iterator next_row;
 
-        if (last_ts != nearest_row->first) {
-            last_ts = nearest_row->first;
-
-            auto img0 = nearest_row->second.cam0.load();
-            auto img1 = nearest_row->second.cam1.load();
-
-            time_point expected_real_time_given_dataset_time(
-                std::chrono::duration<long, std::nano>{nearest_row->first - dataset_first_time});
-            _m_cam_publisher.put(_m_cam_publisher.allocate<cam_type>(cam_type{
-                expected_real_time_given_dataset_time,
-                img0,
-                img1,
-            }));
-        }
-        std::this_thread::sleep_for(std::chrono::nanoseconds(after_nearest_row->first - dataset_first_time -
-                                                             _m_rtc->now().time_since_epoch().count() - 2));
-    }
-
-private:
-    const std::shared_ptr<switchboard>             sb;
-    switchboard::writer<cam_type>                  _m_cam_publisher;
-    const std::map<ullong, sensor_types>           _m_sensor_data;
-    ullong                                         dataset_first_time;
-    ullong                                         last_ts;
-    std::shared_ptr<RelativeClock>                 _m_rtc;
-    std::map<ullong, sensor_types>::const_iterator next_row;
-
-    switchboard::reader<imu_time>                   _m_imu_time;
-    switchboard::ptr<const imu_time>                _imu_time;
 };
 
-PLUGIN_MAIN(offline_cam)
+class offline_cam_plugin : public plugin {
+public:
+    offline_cam_plugin(const std::string& name, phonebook* pb)
+        : plugin{name, pb} {
+        pb->register_impl<offline_cam>(
+            std::static_pointer_cast<offline_cam>(std::make_shared<offline_cam_impl>(pb)));
+    }
+};
+
+PLUGIN_MAIN(offline_cam_plugin);
+
+

@@ -15,19 +15,16 @@
 namespace ILLIXR {
 using ullong = unsigned long long;
 
-struct imu_time : switchboard::event {
-    time_point      time;
-    imu_time(time_point time_)
-        : time{time_} { }
-}; 
 
 struct imu_type : switchboard::event {
     time_point      time;
+    time_point      imu_real_time;
     Eigen::Vector3d angular_v;
     Eigen::Vector3d linear_a;
 
-    imu_type(time_point time_, Eigen::Vector3d angular_v_, Eigen::Vector3d linear_a_)
+    imu_type(time_point time_, time_point imu_time_, Eigen::Vector3d angular_v_, Eigen::Vector3d linear_a_)
         : time{time_}
+        , imu_real_time{imu_time_}
         , angular_v{std::move(angular_v_)}
         , linear_a{std::move(linear_a_)} { }
 };
