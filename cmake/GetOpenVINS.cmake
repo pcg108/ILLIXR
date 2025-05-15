@@ -7,7 +7,7 @@ endif()
 
 EXTERNALPROJECT_ADD(OpenVINS
         GIT_REPOSITORY https://github.com/pcg108/open_vins.git   # Git repo for source code
-        GIT_TAG 51a627dab1ce23a97f4c3ce4b6860a8303da4107         # sha5 hash for specific commit to pull (if there is no specific tag to use)
+        GIT_TAG a2737d41decd1a15260ca5d100a56ae3a1138370         # sha5 hash for specific commit to pull (if there is no specific tag to use)
         PREFIX ${CMAKE_BINARY_DIR}/_deps/OpenVINS                # the build directory
         DEPENDS ${OpenCV_DEP_STR}   # dependencies of this module
         #arguments to pass to CMake
