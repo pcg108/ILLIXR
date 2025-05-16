@@ -74,7 +74,10 @@ public:
         uint64_t before_render_pose = rdcycle();
 
             auto render_pose = pp->get_fast_pose();
-            std::cout << "pose: " << render_pose.pose.position.x() << " " << render_pose.pose.position.y() << " " << render_pose.pose.position.z() << std::endl;
+
+            if (render_pose.pose.position.x() != 0) {
+                std::cout << "pose: " << render_pose.pose.position.x() << " " << render_pose.pose.position.y() << " " << render_pose.pose.position.z() << std::endl;
+            }
 
         uint64_t after_render_pose = rdcycle();
 
