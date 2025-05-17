@@ -64,6 +64,11 @@ public:
      */
     void callback(const switchboard::ptr<const imu_type>& datum) {
 
+        imu_sample_count += 1;
+        if (imu_sample_count % 10 != 0) {
+            return;
+        }
+
         uint32_t response_buffer[5];
 
         eye_position_type send_eye_pos  = eye_position_type{_m_clock->now(), 0.0, 0.0}; // et->get_eye_position();
