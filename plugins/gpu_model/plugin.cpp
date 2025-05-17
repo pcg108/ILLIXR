@@ -126,7 +126,7 @@ private:
 
         // std::cout << "[illixr guest] sending packets: " << std::endl;;
         for (int i = 0; i < len; i++) {
-            std::cout << "   " << packets[i] << std::endl;
+            // std::cout << "   " << packets[i] << std::endl;
             while ((reg_read8(GRAPHICS_STATUS) & 0x2) == 0) ;
             reg_write32(GRAPHICS_IN, packets[i]);
         }
