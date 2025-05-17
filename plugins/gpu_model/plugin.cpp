@@ -42,7 +42,7 @@ public:
     }
 
     void send_gpu_render_message(fast_pose_type current_pose, eye_position_type eye_pos, int queue_id, int read_dma_bytes, int num_response_expected, uint32_t* response_buffer) {
-        std::cout << "[illixr guest] sending gpu message" << std::endl;
+        // std::cout << "[illixr guest] sending gpu message" << std::endl;
 
         tx_packets[0] = make_start_packet(queue_id, 9, read_dma_bytes);
         make_pose_packets(tx_packets, current_pose.pose, 1);
@@ -54,10 +54,10 @@ public:
 
         for (int i = 0; i < num_response_expected; i++) {
             response_buffer[i] = read_packet();
-            std::cout << " gpu model received: " << response_buffer[i] << std::endl;
+            // std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
 
-        std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
+        // std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
 
     }
@@ -124,13 +124,13 @@ private:
         // return;
         std::unique_lock lock{bridge_mutex};
 
-        std::cout << "[illixr guest] sending packets: " << std::endl;;
+        // std::cout << "[illixr guest] sending packets: " << std::endl;;
         for (int i = 0; i < len; i++) {
             std::cout << "   " << packets[i] << std::endl;
             while ((reg_read8(GRAPHICS_STATUS) & 0x2) == 0) ;
             reg_write32(GRAPHICS_IN, packets[i]);
         }
-        std::cout << "[illixr guest] finished sending packets" << std::endl;
+        // std::cout << "[illixr guest] finished sending packets" << std::endl;
     }
 
     void riscv_flush_cache_line(void* addr) {
