@@ -41,7 +41,7 @@ const record_header mtp_record{"mtp_record",
 
 class native_renderer : public plugin {
 public:
-    native_renderer(std::string& name_, phonebook* pb)
+    native_renderer(std::string name_, phonebook* pb)
         : plugin{std::move(name_), pb}
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
@@ -51,16 +51,18 @@ public:
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
         , mtp_logger{record_logger_} {
         spdlogger(std::getenv("NATIVE_RENDERER_LOG_LEVEL"));
+
         sb->schedule<imu_type>(id, "imu", [&](const switchboard::ptr<const imu_type>& datum, size_t) {
             callback(datum);
         });
+
     }
 
 
     /**
      * @brief Executes one iteration of the plugin's main loop.
      */
-    void callback(const switchboard::ptr<const imu_type>& datum) override {
+    void callback(const switchboard::ptr<const imu_type>& datum) {
 
         uint32_t response_buffer[5];
 
