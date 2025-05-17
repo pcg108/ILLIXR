@@ -21,6 +21,8 @@
 #include "illixr/vk_util/headless_sink.hpp"
 #include "illixr/vk_util/render_pass.hpp"
 
+#include "illixr/plugin.hpp"
+
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "illixr/gl_util/lib/tiny_obj_loader.h"
 
@@ -37,10 +39,10 @@ const record_header mtp_record{"mtp_record",
         {"MTP_ns", typeid(std::chrono::nanoseconds)},
     }};
 
-class native_renderer : public threadloop {
+class native_renderer : public plugin {
 public:
-    native_renderer(const std::string& name_, phonebook* pb)
-        : threadloop{name_, pb}
+    native_renderer(std::string& name_, phonebook* pb)
+        : plugin{std::move(name_), pb}
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , gpu{pb->lookup_impl<gpu_model>()}
@@ -49,23 +51,16 @@ public:
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
         , mtp_logger{record_logger_} {
         spdlogger(std::getenv("NATIVE_RENDERER_LOG_LEVEL"));
+        sb->schedule<imu_type>(id, "imu", [&](const switchboard::ptr<const imu_type>& datum, size_t) {
+            callback(datum);
+        });
     }
 
-    /**
-     * @brief Sets up the thread for the plugin.
-     *
-     * This function initializes depth images, offscreen targets, command buffers, sync objects,
-     * application and timewarp passes, offscreen and swapchain framebuffers. Then, it initializes
-     * application and timewarp with their respective passes.
-     */
-    void _p_thread_setup() override {
-
-    }
 
     /**
      * @brief Executes one iteration of the plugin's main loop.
      */
-    void _p_one_iteration() override {
+    void callback(const switchboard::ptr<const imu_type>& datum) override {
 
         uint32_t response_buffer[5];
 
@@ -137,5 +132,7 @@ private:
 
     int frame_count = 0;
     record_coalescer mtp_logger;
+
+    int imu_sample_count = 0;
 };
 PLUGIN_MAIN(native_renderer)
