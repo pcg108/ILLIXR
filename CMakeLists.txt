@@ -61,7 +61,7 @@ include(ExternalProject)
 
 project(ILLIXR VERSION 3.2.0)
 
-set(RVV_ARCH_FLAGS "-march=rv64gc -mabi=lp64d")
+set(RVV_ARCH_FLAGS "-march=rv64gcv -mabi=lp64d")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${RVV_ARCH_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${RVV_ARCH_FLAGS}")
 
