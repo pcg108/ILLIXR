@@ -78,7 +78,7 @@ public:
             auto render_pose = pp->get_fast_pose();
 
             // if (render_pose.pose.position.x() != 0) {
-                std::cout << "pose: " << render_pose.pose.position.x() << " " << render_pose.pose.position.y() << " " << render_pose.pose.position.z() << std::endl;
+                // std::cout << "pose: " << render_pose.pose.position.x() << " " << render_pose.pose.position.y() << " " << render_pose.pose.position.z() << std::endl;
             // }
             
 
