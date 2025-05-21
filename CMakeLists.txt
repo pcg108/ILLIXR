@@ -189,9 +189,9 @@ pkg_check_modules(gl REQUIRED gl)
 # set(TARGET "RISCV64_ZVL256B")
 # add_subdirectory(${CMAKE_SOURCE_DIR}/OpenBLAS)
 
-find_package(OpenBLAS REQUIRED)
+# find_package(OpenBLAS REQUIRED)
 
-add_definitions(-DEIGEN_USE_BLAS=1)
+# add_definitions(-DEIGEN_USE_BLAS=1)
 find_package(Eigen3 REQUIRED)
 
 #############
