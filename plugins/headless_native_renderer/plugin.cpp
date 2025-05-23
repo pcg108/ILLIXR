@@ -46,7 +46,7 @@ public:
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , gpu{pb->lookup_impl<gpu_model>()}
-        // , et{pb->lookup_impl<eye_tracking_target>()}
+        , et{pb->lookup_impl<eye_tracking_target>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
         , mtp_logger{record_logger_} {
@@ -71,7 +71,7 @@ public:
 
         uint32_t response_buffer[5];
 
-        eye_position_type send_eye_pos  = eye_position_type{_m_clock->now(), 0.0, 0.0}; // et->get_eye_position();
+        eye_position_type send_eye_pos  = et->get_eye_position();
 
         uint64_t before_render_pose = rdcycle();
 
@@ -130,7 +130,7 @@ private:
     const std::shared_ptr<switchboard>          sb;
     const std::shared_ptr<pose_prediction>      pp;
     const std::shared_ptr<gpu_model>            gpu;
-    // const std::shared_ptr<eye_tracking_target>  et;
+    const std::shared_ptr<eye_tracking_target>  et;
     const std::shared_ptr<const RelativeClock> _m_clock;
 
 
