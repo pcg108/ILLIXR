@@ -122,7 +122,7 @@ profile:
 
 profile:
   name: illixr_client
-  plugins: offline_imu,offline_cam,offline_eye,gtsam_integrator,pose_prediction,gpu_model,headless_native_renderer
+  plugins: offline_imu,offline_cam,offline_eye,eye_tracking_target,gtsam_integrator,pose_prediction,gpu_model,headless_native_renderer
   build_flags: -DILLIXR_VULKAN
   build_type: Release
   enable_offload: false
