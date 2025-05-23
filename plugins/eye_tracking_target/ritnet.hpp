@@ -1,7 +1,7 @@
-#include "include/gemmini.h"
-#include "include/ritnet_helpers.h"
-#include "include/ritnet_params.h"
-#include "include/ritnet_weights.h"
+#include "gemmini/gemmini.h"
+#include "gemmini/ritnet_helpers.h"
+#include "gemmini/ritnet_params.h"
+#include "gemmini/ritnet_weights.h"
 
 void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
     
