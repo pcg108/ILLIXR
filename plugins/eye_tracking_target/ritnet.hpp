@@ -55,7 +55,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block1_conv1_b,
         /* output */            (elem_t*) down_block1_concat1_temp+1,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block1_conv1_params.output_scale, 
         /* pool_size */         down_block1_conv1_params.pool_size, 
         /* pool_stride */       down_block1_conv1_params.pool_stride, 
@@ -105,7 +105,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block1_conv22_b, 
         /* output */            (elem_t*) down_block1_concat2_temp+33,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block1_conv22_params.output_scale, 
         /* pool_size */         down_block1_conv22_params.pool_size, 
         /* pool_stride */       down_block1_conv22_params.pool_stride, 
@@ -189,7 +189,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block1_conv32_b, 
         /* output */        (elem_t*)   down_block1_conv32_out_relu,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block1_conv32_params.output_scale,  
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -284,7 +284,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block2_conv1_b, 
         /* output */            (elem_t*) down_block2_concat1_temp+32,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block2_conv1_params.output_scale, 
         /* pool_size */         down_block2_conv1_params.pool_size, 
         /* pool_stride */       down_block2_conv1_params.pool_stride, 
@@ -334,7 +334,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block2_conv22_b, 
         /* output */            (elem_t*) down_block2_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block2_conv22_params.output_scale, 
         /* pool_size */         down_block2_conv22_params.pool_size, 
         /* pool_stride */       down_block2_conv22_params.pool_stride, 
@@ -431,7 +431,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block2_conv32_b, 
         /* output */        (elem_t*)   up_block3_conv12_concat2_temp,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block2_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -469,7 +469,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block2_conv32_b, 
         /* output */        (elem_t*)   down_block3_conv22_concat2_temp,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block2_conv32_params.output_scale,
         /* pool_size */     down_block2_conv32_params.pool_size, 
         /* pool_stride */   down_block2_conv32_params.pool_stride, 
@@ -508,7 +508,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block3_conv1_b, 
         /* output */            (elem_t*) down_block3_conv22_concat2_temp+32,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block3_conv1_params.output_scale, 
         /* pool_size */         down_block3_conv1_params.pool_size, 
         /* pool_stride */       down_block3_conv1_params.pool_stride, 
@@ -557,7 +557,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block3_conv22_b, 
         /* output */            (elem_t*) down_block3_conv22_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block2_conv22_params.output_scale, 
         /* pool_size */         down_block2_conv22_params.pool_size, 
         /* pool_stride */       down_block2_conv22_params.pool_stride, 
@@ -612,7 +612,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block3_conv32_b, 
         /* output */        (elem_t*)   up_block2_conv12_concat2_temp,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block3_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -650,7 +650,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block3_conv32_b, 
         /* output */        (elem_t*)   down_block4_conv22_concat2_temp,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block3_conv32_params.output_scale,
         /* pool_size */     down_block3_conv32_params.pool_size, 
         /* pool_stride */   down_block3_conv32_params.pool_stride, 
@@ -690,7 +690,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block4_conv1_b, 
         /* output */            (elem_t*) down_block4_conv22_concat2_temp+32,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block4_conv1_params.output_scale, 
         /* pool_size */         down_block4_conv1_params.pool_size, 
         /* pool_stride */       down_block4_conv1_params.pool_stride, 
@@ -739,7 +739,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block4_conv22_b, 
         /* output */            (elem_t*) down_block4_conv22_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block4_conv22_params.output_scale, 
         /* pool_size */         down_block4_conv22_params.pool_size, 
         /* pool_stride */       down_block4_conv22_params.pool_stride, 
@@ -794,7 +794,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block4_conv32_b, 
         /* output */        (elem_t*)   up_block1_conv12_concat2_temp,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block4_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -832,7 +832,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block4_conv32_b, 
         /* output */        (elem_t*)   down_block5_conv22_concat2_temp,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block4_conv32_params.output_scale,
         /* pool_size */     down_block4_conv32_params.pool_size, 
         /* pool_stride */   down_block4_conv32_params.pool_stride, 
@@ -872,7 +872,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block5_conv1_b, 
         /* output */            (elem_t*) down_block5_conv22_concat2_temp+32,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block5_conv1_params.output_scale, 
         /* pool_size */         down_block5_conv1_params.pool_size, 
         /* pool_stride */       down_block5_conv1_params.pool_stride, 
@@ -921,7 +921,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              down_block5_conv22_b, 
         /* output */            (elem_t*) down_block5_conv22_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             down_block5_conv22_params.output_scale, 
         /* pool_size */         down_block5_conv22_params.pool_size, 
         /* pool_stride */       down_block5_conv22_params.pool_stride, 
@@ -973,7 +973,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */          (acc_t*)    down_block5_conv32_b, 
         /* output */        (elem_t*)   down_block5_conv32_out_relu,
 
-        /* activation */    RELU_ACC, 
+        /* activation */    RELU_, 
         /* scale */         down_block5_conv32_params.output_scale,
         /* pool_size */     1, 
         /* pool_stride */   1, 
@@ -1086,7 +1086,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block1_conv12_b, 
         /* output */            (elem_t*) up_block1_conv12_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block1_conv12_params.output_scale, 
         /* pool_size */         up_block1_conv12_params.pool_size, 
         /* pool_stride */       up_block1_conv12_params.pool_stride, 
@@ -1139,7 +1139,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block1_conv22_b, 
         /* output */            (elem_t*) up_block1_conv22_out_relu,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block1_conv22_params.output_scale, 
         /* pool_size */         up_block1_conv22_params.pool_size, 
         /* pool_stride */       up_block1_conv22_params.pool_stride, 
@@ -1246,7 +1246,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block2_conv12_b, 
         /* output */            (elem_t*) up_block2_conv12_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block2_conv12_params.output_scale, 
         /* pool_size */         up_block2_conv12_params.pool_size, 
         /* pool_stride */       up_block2_conv12_params.pool_stride, 
@@ -1298,7 +1298,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block2_conv22_b, 
         /* output */           (elem_t*) up_block2_conv22_out_relu,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block2_conv22_params.output_scale, 
         /* pool_size */         up_block2_conv22_params.pool_size, 
         /* pool_stride */       up_block2_conv22_params.pool_stride, 
@@ -1406,7 +1406,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block3_conv12_b, 
         /* output */            (elem_t*) up_block3_conv12_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block3_conv12_params.output_scale, 
         /* pool_size */         up_block3_conv12_params.pool_size, 
         /* pool_stride */       up_block3_conv12_params.pool_stride, 
@@ -1458,7 +1458,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block3_conv22_b, 
         /* output */            (elem_t*) up_block3_conv22_out_relu,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block3_conv22_params.output_scale, 
         /* pool_size */         up_block3_conv22_params.pool_size, 
         /* pool_stride */       up_block3_conv22_params.pool_stride, 
@@ -1565,7 +1565,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block4_conv12_b, 
         /* output */            (elem_t*) up_block4_conv12_concat2_temp+64,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block4_conv12_params.output_scale, 
         /* pool_size */         up_block4_conv12_params.pool_size, 
         /* pool_stride */       up_block4_conv12_params.pool_stride, 
@@ -1617,7 +1617,7 @@ void gemmini_inference(elem_t * images, float eye_x, float eye_y) {
         /* bias */              up_block4_conv22_b, 
         /* output */            (elem_t*) up_block4_conv22_out_relu,
 
-        /* activation */        RELU_ACC, 
+        /* activation */        RELU_, 
         /* scale */             up_block4_conv22_params.output_scale, 
         /* pool_size */         up_block4_conv22_params.pool_size, 
         /* pool_stride */       up_block4_conv22_params.pool_stride, 

@@ -110,7 +110,11 @@ static elem_t upsample[1800] row_align(1);
 static elem_t upsize[1800] row_align(1);
 
 
-
+static uint64_t read_cycles() {
+    uint64_t cycles;
+    asm volatile ("rdcycle %0" : "=r" (cycles));
+    return cycles;
+}
 
 
 
