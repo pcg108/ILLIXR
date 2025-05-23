@@ -88,25 +88,28 @@ struct ConvParams {
     int batch_size;
     int in_row_dim;
     int in_col_dim;
-    int out_row_dim;
-    int out_col_dim;
     int kernel_size;
     int in_channels;
     int out_channels;
-    int in_stride;
-    int weight_stride;
-    int out_stride;
     int stride;
     int padding;
     bool bias;
     bool depthwise;
+    int out_row_dim;
+    int out_col_dim;
     int n_patches;
     int patch_size;
+    int pool_size;
+    int pool_stride;
+    int pool_padding;
+    int out_dim_pooled;
     acc_scale_t output_scale;
-    scale_t res_scale;
-    int pool_size, pool_stride, pool_padding, out_dim_pooled;
-    
     int I, J, K;
+    scale_t res_scale;
+    int in_stride;
+    int weight_stride;
+    int out_stride;
+    
 };
 
 #endif // GEMMINI_PARAMS_H
