@@ -13,6 +13,12 @@ add_library(${PLUGIN_NAME} SHARED
     ../../include/illixr/phonebook.hpp
 )
 
+add_library(gemmini STATIC IMPORTED)
+set_target_properties(gemmini PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/gemmini/libgemmini.a
+    INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/gemmini/include
+)
+
 if(BUILD_OPENCV)
     add_dependencies(${PLUGIN_NAME} OpenCV_Viz)
 endif()
@@ -32,14 +38,13 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
     ${Eigen3_INCLUDE_DIRS}
 )
 
-include_directories(gemmini)
 
 target_link_libraries(${PLUGIN_NAME}
     ${OpenCV_LIBRARIES}
     ${Eigen3_LIBRARIES}
     ${onnxruntime_LIBRARIES}
     spdlog::spdlog
-    ${CMAKE_CURRENT_SOURCE_DIR}/gemmini/libgemmini.a
+    gemmini
 )
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
