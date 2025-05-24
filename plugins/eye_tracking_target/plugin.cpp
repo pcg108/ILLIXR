@@ -7,7 +7,8 @@
 #include "illixr/switchboard.hpp"
 #include "illixr/eye_tracking_target.hpp"
 
-#include "ritnet.hpp"
+#include "ritnet.h"
+#include <cstdint>
 
 #include <onnxruntime_cxx_api.h>
 #include <opencv2/opencv.hpp>  
@@ -47,10 +48,10 @@ class eye_tracking_target_impl : public eye_tracking_target {
                     throw std::runtime_error("Model path is not set. Please set the ILLIXR_EYE_MODEL environment variable.");
                 }
 
-                int backend = 0;
+                int backend = 2;
                 const char* eye_tracking_env = std::getenv("ILLIXR_EYE_TRACKING");
                 if (eye_tracking_env == nullptr) {
-                    std::cout << "[illixr guest] ILLIXR_EYE_TRACKING not set. Defaulting to CPU." << std::endl;
+                    std::cout << "[illixr guest] ILLIXR_EYE_TRACKING not set. Defaulting to NPU." << std::endl;
                 } else {
                     backend = std::stoi(eye_tracking_env);
                     std::cout << "[illixr guest] ILLIXR_EYE_TRACKING: " << eye_tracking_env << std::endl;
@@ -132,11 +133,11 @@ class eye_tracking_target_impl : public eye_tracking_target {
             img.convertTo(img, CV_8U);
 
             // get [1][160][240][1] c array from the cv::Mat
-            elem_t (*input_image)[160][240][1] = reinterpret_cast<elem_t (*)[160][240][1]>(img.data);
+            int8_t (*input_image)[160][240][1] = reinterpret_cast<int8_t (*)[160][240][1]>(img.data);
 
             std::cout << "Gemmini inference" << std::endl;
             // call gemmini function to perform inference
-            gemmini_inference((elem_t*) input_image, pred_x, pred_y);
+            gemmini_inference(input_image, pred_x, pred_y);
             std::cout << "finished inference" << std::endl;
 
         }

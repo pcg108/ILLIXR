@@ -32,12 +32,14 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
     ${Eigen3_INCLUDE_DIRS}
 )
 
+include_directories(gemmini)
 
 target_link_libraries(${PLUGIN_NAME}
     ${OpenCV_LIBRARIES}
     ${Eigen3_LIBRARIES}
     ${onnxruntime_LIBRARIES}
     spdlog::spdlog
+    ${CMAKE_CURRENT_SOURCE_DIR}/gemmini/libgemmini.a
 )
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
