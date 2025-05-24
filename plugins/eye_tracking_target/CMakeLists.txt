@@ -15,7 +15,7 @@ add_library(${PLUGIN_NAME} SHARED
 
 add_library(gemmini STATIC IMPORTED)
 set_target_properties(gemmini PROPERTIES
-    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/gemmini/libgemmini.a
+    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/gemmini/libritnet.a
     INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/gemmini/include
 )
 
