@@ -142,7 +142,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
             // call gemmini function to perform inference
             // gemmini_inference(input_image, pred_x, pred_y);
 
-            std::system("./root/ILLIXR/plugins/eye_tracking_target/gemmini/ritnet-linux");
+            std::system("/root/ILLIXR/plugins/eye_tracking_target/gemmini/ritnet-linux");
 
             std::cout << "finished inference" << std::endl;
 
