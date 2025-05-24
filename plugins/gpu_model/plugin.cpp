@@ -84,6 +84,11 @@ public:
         riscv_flush_range((void*)dma_ptr, bytes);
     }
 
+    void copy_from_dma(void* data, int bytes) {
+        std::unique_lock lock{dma_mutex};
+        std::memcpy((void*) data, dma_ptr, bytes);
+    }
+
 
 private:
 

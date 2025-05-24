@@ -9,6 +9,7 @@
 
 #include "ritnet.h"
 #include <cstdint>
+#include <cstdlib>
 
 #include <onnxruntime_cxx_api.h>
 #include <opencv2/opencv.hpp>  
@@ -131,13 +132,18 @@ class eye_tracking_target_impl : public eye_tracking_target {
         } else if (eye_tracking_backend == NPU) {
             cv::Mat img = preprocess_img(eye_pos->eye_img);
             img.convertTo(img, CV_8U);
+            int img_size = img.total() * img.elemSize(); 
+            gpu->copy_to_dma(img.data, img_size);
 
             // get [1][160][240][1] c array from the cv::Mat
-            int8_t (*input_image)[160][240][1] = reinterpret_cast<int8_t (*)[160][240][1]>(img.data);
+            // int8_t (*input_image)[160][240][1] = reinterpret_cast<int8_t (*)[160][240][1]>(img.data);
 
             std::cout << "Gemmini inference" << std::endl;
             // call gemmini function to perform inference
-            gemmini_inference(input_image, pred_x, pred_y);
+            // gemmini_inference(input_image, pred_x, pred_y);
+
+            std::system("./root/ILLIXR/plugins/eye_tracking_target/gemmini/ritnet-linux");
+
             std::cout << "finished inference" << std::endl;
 
         }
