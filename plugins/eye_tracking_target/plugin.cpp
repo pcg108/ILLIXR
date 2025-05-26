@@ -159,7 +159,7 @@ private:
         int rows_to_print = std::min(5, mat.rows);
         cv::Mat first_rows = mat(cv::Range(0, rows_to_print), cv::Range::all());
 
-        // std::cout << "First " << rows_to_print << " rows of matrix:\n" << first_rows << std::endl;
+        std::cout << "First " << rows_to_print << " rows of matrix:\n" << first_rows << std::endl;
     }
 
     cv::Mat preprocess_img(cv::Mat img) {
