@@ -105,18 +105,18 @@ private:
     }
 
     void make_pose_packets(uint32_t* packets, pose_type pose, int start_index) {
-        packets[start_index] = (uint32_t) pose.position.x();
-        packets[start_index+1] = (uint32_t) pose.position.y();
-        packets[start_index+2] = (uint32_t) pose.position.z();
-        packets[start_index+3] = (uint32_t) pose.orientation.w();
-        packets[start_index+4] = (uint32_t) pose.orientation.x();
-        packets[start_index+5] = (uint32_t) pose.orientation.y();
-        packets[start_index+6] = (uint32_t) pose.orientation.z();
+        packets[start_index] = float_to_uint32(pose.position.x());
+        packets[start_index+1] = float_to_uint32(pose.position.y());
+        packets[start_index+2] = float_to_uint32(pose.position.z());
+        packets[start_index+3] = float_to_uint32(pose.orientation.w());
+        packets[start_index+4] = float_to_uint32(pose.orientation.x());
+        packets[start_index+5] = float_to_uint32(pose.orientation.y());
+        packets[start_index+6] = float_to_uint32(pose.orientation.z());
     } 
 
     void make_eye_pose_packets(uint32_t* packets, eye_position_type eye_pos, int start_index) {
-        packets[start_index] = (uint32_t) eye_pos.eye_x;
-        packets[start_index+1] = (uint32_t) eye_pos.eye_y;
+        packets[start_index] = float_to_uint32(eye_pos.eye_x);
+        packets[start_index+1] = float_to_uint32(eye_pos.eye_y);
     }
 
     long int read_packet() {
@@ -136,6 +136,12 @@ private:
             reg_write32(GRAPHICS_IN, packets[i]);
         }
         // std::cout << "[illixr guest] finished sending packets" << std::endl;
+    }
+
+    uint32_t float_to_uint32(float val) {
+        uint32_t result;
+        memcpy(&result, &val, sizeof(float));
+        return result;
     }
 
     void riscv_flush_cache_line(void* addr) {
