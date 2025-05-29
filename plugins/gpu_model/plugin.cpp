@@ -81,7 +81,8 @@ public:
     void copy_to_dma(void* data, int bytes) {
         std::unique_lock lock{dma_mutex};
         std::memcpy((void*) dma_ptr, data, bytes);
-        riscv_flush_range((void*)dma_ptr, bytes);
+
+        
     }
 
     void copy_from_dma(void* data, int bytes) {
@@ -142,21 +143,6 @@ private:
         uint32_t result;
         memcpy(&result, &val, sizeof(float));
         return result;
-    }
-
-    void riscv_flush_cache_line(void* addr) {
-        // asm volatile ("cbo.flush %0" : : "r" (addr));
-    }
-
-    void riscv_flush_range(void* addr, size_t size) {
-        const size_t cache_line_size = 64; 
-        uintptr_t start = (uintptr_t)addr;
-        uintptr_t end = start + size;
-        start &= ~(cache_line_size - 1); 
-
-        for (uintptr_t ptr = start; ptr < end; ptr += cache_line_size) {
-            riscv_flush_cache_line((void*)ptr);
-        }
     }
 
 
