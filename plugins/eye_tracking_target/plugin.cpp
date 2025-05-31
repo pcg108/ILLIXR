@@ -116,6 +116,9 @@ class eye_tracking_target_impl : public eye_tracking_target {
             // get_fovea(pred_x, pred_y);
             // std::cout << "predicted fovea: " << pred_x << ", " << pred_y << std::endl; 
 
+            read_counters(counters_after);
+            std::cout << diff_to_string(counters_after, counters_before) << std::endl;
+
             return eye_position_type{_m_clock->now(), 0.0, 0.0}; // don't do eye tracking for CPU, just return 0
 
         } else if (eye_tracking_backend == GPU) {
