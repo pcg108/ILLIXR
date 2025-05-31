@@ -2,7 +2,7 @@
 #define READ_HPM_H
 #include <stdint.h>
 #include <sstream>
-#include <string?
+#include <string>
 
 #define write_csr(reg, val) ({ \
   asm volatile ("csrw " #reg ", %0" :: "rK"(val)); })
