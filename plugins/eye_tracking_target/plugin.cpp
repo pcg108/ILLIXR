@@ -6,6 +6,7 @@
 #include "illixr/threadloop.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/eye_tracking_target.hpp"
+#include "illixr/read_hpm.h"
 
 #include "ritnet.h"
 #include <cstdint>
@@ -89,6 +90,8 @@ class eye_tracking_target_impl : public eye_tracking_target {
     eye_position_type get_eye_position()  {
         switchboard::ptr<const eye_type> eye_pos = _m_eye_raw.get_ro_nullable();
 
+        read_counters(counters_before);
+
        if (!eye_pos) {
             // std::cout << "No eye data" << std::endl;
             return eye_position_type{_m_clock->now(), 0.0, 0.0};
@@ -148,6 +151,8 @@ class eye_tracking_target_impl : public eye_tracking_target {
 
         }
 
+        read_counters(counters_after);
+        std::cout << diff_to_string(counters_after, counters_before) << std::endl;
 
         return eye_position_type{_m_clock->now(), eye_pos->eye_x_true, eye_pos->eye_y_true};
     }
@@ -253,6 +258,9 @@ private:
 
     cv::Mat lut;
     cv::Ptr<cv::CLAHE> clahe;
+
+    double counters_before[29] = {0.0};
+    double counters_after[29] = {0.0};
 };
 
 
