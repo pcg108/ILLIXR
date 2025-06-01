@@ -71,16 +71,16 @@ public:
 
         uint32_t response_buffer[5];
 
-        eye_position_type send_eye_pos  = eye_position_type{_m_clock->now(), 0.0, 0.0}; 
+        eye_position_type send_eye_pos  = et->get_eye_position(); // eye_position_type{_m_clock->now(), 0.0, 0.0}; 
 
         uint64_t before_render_pose = rdcycle();
 
             auto render_pose = pp->get_fast_pose();
 
-            if (render_pose.pose.position.x() != 0) {
-                send_eye_pos = et->get_eye_position();
+            // if (render_pose.pose.position.x() != 0) {
+                // send_eye_pos = et->get_eye_position();
                 // std::cout << "pose: " << render_pose.pose.position.x() << " " << render_pose.pose.position.y() << " " << render_pose.pose.position.z() << std::endl;
-            }
+            // }
             
 
         uint64_t after_render_pose = rdcycle();
