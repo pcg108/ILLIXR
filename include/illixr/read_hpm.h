@@ -4,6 +4,8 @@
 #include <sstream>
 #include <string>
 
+#pragma once
+
 #define write_csr(reg, val) ({ \
   asm volatile ("csrw " #reg ", %0" :: "rK"(val)); })
 
