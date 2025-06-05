@@ -26,14 +26,22 @@ public:
     // However, we don't have vsync estimation yet.
     // So we will predict to `now()`, as a temporary approximation
     fast_pose_type get_fast_pose() const override {
+        read_counters(counters_before);
         
         switchboard::ptr<const switchboard::event_wrapper<time_point>> vsync_estimate = _m_vsync_estimate.get_ro_nullable();
 
+        fast_pose_type fast_pose; 
+
         if (vsync_estimate == nullptr) {
-            return get_fast_pose(_m_clock->now());
+            fast_pose = get_fast_pose(_m_clock->now());
         } else {
-            return get_fast_pose(*vsync_estimate);
+            fast_pose = get_fast_pose(*vsync_estimate);
         }
+
+        read_counters(counters_after);
+        std::cout << "pose_prediction: " << diff_to_string(counters_after, counters_before) << std::endl;
+
+        return fast_pose;
     }
 
     pose_type get_true_pose() const override {
@@ -62,7 +70,6 @@ public:
 
     // future_time: An absolute timepoint in the future
     fast_pose_type get_fast_pose(time_point future_timestamp) const override {
-        read_counters(counters_before);
 
         switchboard::ptr<const pose_type> slow_pose = _m_slow_pose.get_ro_nullable();
         if (slow_pose == nullptr) {
@@ -113,9 +120,6 @@ public:
                 offset     = predicted_pose.orientation.inverse();
             }
         }
-
-        read_counters(counters_after);
-        std::cout << "pose_prediction: " << diff_to_string(counters_after, counters_before) << std::endl;
 
         // Several timestamps are logged:
         //       - the prediction compute time (time when this prediction was computed, i.e., now)
