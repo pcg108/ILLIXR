@@ -42,9 +42,6 @@ public:
 
     }
 
-    double counters_before[29] = {0.0};
-    double counters_after[29] = {0.0};
-
     void send_gpu_render_message(fast_pose_type current_pose, eye_position_type eye_pos, int queue_id, int read_dma_bytes, int num_response_expected, uint32_t* response_buffer) {
         read_counters(counters_before);
 
@@ -101,6 +98,9 @@ public:
 
 
 private:
+
+    double counters_before[29] = {0.0};
+    double counters_after[29] = {0.0};
 
     uint32_t make_start_packet(int queue_id, int num_packets, int read_dma_bytes) {
 

@@ -49,9 +49,6 @@ public:
         }
     }
 
-    double counters_before[29] = {0.0};
-    double counters_after[29] = {0.0};
-
     void callback(const switchboard::ptr<const imu_type>& datum) {
         read_counters(counters_before);
 
@@ -81,6 +78,9 @@ private:
     switchboard::writer<imu_raw_type> _m_imu_raw;
 
     std::vector<imu_type> _imu_vec;
+
+    double counters_before[29] = {0.0};
+    double counters_after[29] = {0.0};
 
     // std::vector<pose_type> filtered_poses;
 

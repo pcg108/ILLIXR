@@ -17,7 +17,7 @@ static inline uint64_t rdcycle() {
     return cycles;
 }
 
-inline void read_counters(double read_counters[29]) {
+inline void read_counters(double* read_counters) {
     read_counters[0] = read_csr(hpmcounter3); // integer loads
     read_counters[1] = read_csr(hpmcounter4); // integer store
     read_counters[2] = read_csr(hpmcounter5); // integer arithmetic
@@ -47,7 +47,7 @@ inline void read_counters(double read_counters[29]) {
     read_counters[26] = read_csr(instret); // instruction count
 }
 
-inline std::string diff_to_string(double (&a)[29], double (&b)[29]) {
+inline std::string diff_to_string(double* a, double* b) {
     std::ostringstream oss;
     for (int i = 0; i < 29; ++i) {
         oss << (a[i] - b[i]);

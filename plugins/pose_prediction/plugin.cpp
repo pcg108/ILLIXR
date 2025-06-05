@@ -60,9 +60,6 @@ public:
         return correct_pose(offset_pose);
     }
 
-    double counters_before[29] = {0.0};
-    double counters_after[29] = {0.0};
-
     // future_time: An absolute timepoint in the future
     fast_pose_type get_fast_pose(time_point future_timestamp) const override {
         read_counters(counters_before);
@@ -211,6 +208,8 @@ private:
     mutable Eigen::Quaternionf                                       offset{Eigen::Quaternionf::Identity()};
     mutable std::shared_mutex                                        offset_mutex;
 
+    double counters_before[29] = {0.0};
+    double counters_after[29] = {0.0};
 
     // Slightly modified copy of OpenVINS method found in propagator.cpp
     // Returns a pair of the predictor state_plus and the time associated with the
