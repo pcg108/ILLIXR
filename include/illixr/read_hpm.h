@@ -47,7 +47,7 @@ inline void read_counters(double read_counters[29]) {
     read_counters[26] = read_csr(instret); // instruction count
 }
 
-inline std::string diff_to_string(const double (&a)[29], const double (&b)[29]) {
+inline std::string diff_to_string(double (&a)[29], double (&b)[29]) {
     std::ostringstream oss;
     for (int i = 0; i < 29; ++i) {
         oss << (a[i] - b[i]);
