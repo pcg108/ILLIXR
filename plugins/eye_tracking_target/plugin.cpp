@@ -155,7 +155,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
         }
 
         read_counters(counters_after);
-        std::cout << diff_to_string(counters_after, counters_before) << std::endl;
+        std::cout << "eye_tracking_target: " << diff_to_string(counters_after, counters_before) << std::endl;
 
         return eye_position_type{_m_clock->now(), eye_pos->eye_x_true, eye_pos->eye_y_true};
     }

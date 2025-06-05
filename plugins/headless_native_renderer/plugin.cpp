@@ -20,6 +20,7 @@
 #include "illixr/threadloop.hpp"
 #include "illixr/vk_util/headless_sink.hpp"
 #include "illixr/vk_util/render_pass.hpp"
+#include "illixr/read_hpm.h"
 
 #include "illixr/plugin.hpp"
 
@@ -63,6 +64,8 @@ public:
      * @brief Executes one iteration of the plugin's main loop.
      */
     void callback(const switchboard::ptr<const imu_type>& datum) {
+
+        read_counters(counters_before);
 
         imu_sample_count += 1;
         if (imu_sample_count % 10 != 0) {
@@ -115,11 +118,15 @@ public:
                 {_m_clock->now() - timewarp_pose.pose.sensor_time},
             }});
 
+        read_counters(counters_after);
+        std::cout << "headless_native_renderer: " << diff_to_string(counters_after, counters_before) << std::endl;
+
     }
 
 private:
 
-    
+    double counters_before[29] = {0.0};
+    double counters_after[29] = {0.0};
 
     static inline uint64_t rdcycle() {
         uint64_t cycles;

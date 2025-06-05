@@ -4,6 +4,7 @@
 #include "illixr/phonebook.hpp"
 #include "illixr/switchboard.hpp"
 #include "third_party/filter.h"
+#include "illixr/read_hpm.h"
 
 #include <gtsam/base/Vector.h>
 #include <gtsam/navigation/AHRSFactor.h>
@@ -49,10 +50,15 @@ public:
     }
 
     void callback(const switchboard::ptr<const imu_type>& datum) {
+        read_counters(counters_before);
+
         _imu_vec.emplace_back(datum->time, datum->imu_real_time, datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 
         clean_imu_vec(datum->time);
         propagate_imu_values(datum->time);
+
+        read_counters(counters_after);
+        std::cout << "gtsam_integrator: " << diff_to_string(counters_after, counters_before) << std::endl;
 
         RAC_ERRNO_MSG("gtsam_integrator");
     }
@@ -72,6 +78,9 @@ private:
     switchboard::writer<imu_raw_type> _m_imu_raw;
 
     std::vector<imu_type> _imu_vec;
+
+    double counters_before[29] = {0.0};
+    double counters_after[29] = {0.0};
 
     // std::vector<pose_type> filtered_poses;
 

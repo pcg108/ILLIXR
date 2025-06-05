@@ -3,6 +3,7 @@
 #include "illixr/data_format.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/gpu_model.hpp"
+#include "illixr/read_hpm.h"
 
 #include <eigen3/Eigen/Dense>
 #include <filesystem>
@@ -42,6 +43,8 @@ public:
     }
 
     void send_gpu_render_message(fast_pose_type current_pose, eye_position_type eye_pos, int queue_id, int read_dma_bytes, int num_response_expected, uint32_t* response_buffer) {
+        read_counters(counters_before);
+
         // std::cout << "[illixr guest] sending gpu message" << std::endl;
 
         tx_packets[0] = make_start_packet(queue_id, 9, read_dma_bytes);
@@ -59,6 +62,9 @@ public:
 
         // std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
+
+        read_counters(counters_after);
+        std::cout << "gpu_model: " << diff_to_string(counters_after, counters_before) << std::endl;
 
     }
 
@@ -92,6 +98,9 @@ public:
 
 
 private:
+
+    double counters_before[29] = {0.0};
+    double counters_after[29] = {0.0};
 
     uint32_t make_start_packet(int queue_id, int num_packets, int read_dma_bytes) {
 
