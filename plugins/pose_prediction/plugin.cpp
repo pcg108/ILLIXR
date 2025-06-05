@@ -3,7 +3,7 @@
 #include "illixr/data_format.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/pose_prediction.hpp"
-#include "read_hpm.hpp"
+#include "illixr/read_hpm.h"
 
 #include <eigen3/Eigen/Dense>
 #include <filesystem>
@@ -26,22 +26,14 @@ public:
     // However, we don't have vsync estimation yet.
     // So we will predict to `now()`, as a temporary approximation
     fast_pose_type get_fast_pose() const override {
-        read_counters(counters_before);
         
         switchboard::ptr<const switchboard::event_wrapper<time_point>> vsync_estimate = _m_vsync_estimate.get_ro_nullable();
 
-        fast_pose_type fast_pose; 
-
         if (vsync_estimate == nullptr) {
-            fast_pose = get_fast_pose(_m_clock->now());
+            return get_fast_pose(_m_clock->now());
         } else {
-            fast_pose = get_fast_pose(*vsync_estimate);
+            return get_fast_pose(*vsync_estimate);
         }
-
-        read_counters(counters_after);
-        std::cout << "pose_prediction: " << diff_to_string(counters_after, counters_before) << std::endl;
-
-        return fast_pose;
     }
 
     pose_type get_true_pose() const override {
@@ -70,6 +62,7 @@ public:
 
     // future_time: An absolute timepoint in the future
     fast_pose_type get_fast_pose(time_point future_timestamp) const override {
+        read_counters(counters_before);
 
         switchboard::ptr<const pose_type> slow_pose = _m_slow_pose.get_ro_nullable();
         if (slow_pose == nullptr) {
@@ -120,6 +113,9 @@ public:
                 offset     = predicted_pose.orientation.inverse();
             }
         }
+
+        read_counters(counters_after);
+        std::cout << "pose_prediction: " << diff_to_string(counters_after, counters_before) << std::endl;
 
         // Several timestamps are logged:
         //       - the prediction compute time (time when this prediction was computed, i.e., now)
@@ -212,8 +208,8 @@ private:
     mutable Eigen::Quaternionf                                       offset{Eigen::Quaternionf::Identity()};
     mutable std::shared_mutex                                        offset_mutex;
 
-    double counters_before[29] = {0.0};
-    double counters_after[29] = {0.0};
+    mutable double counters_before[29] = {0.0};
+    mutable double counters_after[29] = {0.0};
 
     // Slightly modified copy of OpenVINS method found in propagator.cpp
     // Returns a pair of the predictor state_plus and the time associated with the
