@@ -3,7 +3,7 @@
 #include "illixr/data_format.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/pose_prediction.hpp"
-#include "illixr/read_hpm.h"
+#include "read_hpm.hpp"
 
 #include <eigen3/Eigen/Dense>
 #include <filesystem>
