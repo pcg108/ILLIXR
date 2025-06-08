@@ -51,16 +51,13 @@ inline void read_counters(double* read_counters) {
 
     read_counters[0] = read_csr(hpmcounter3); // load interlock
     read_counters[1] = read_csr(hpmcounter4); // long latency interlock
-    read_counters[2] = read_csr(hpmcounter5); // i cache busy
     read_counters[3] = read_csr(hpmcounter6); // d cache busy
     read_counters[4] = read_csr(hpmcounter7); // branch misprediction
     read_counters[5] = read_csr(hpmcounter8); // pipeline flush
     read_counters[6] = read_csr(hpmcounter9); // int multiplication interlock
     read_counters[7] = read_csr(hpmcounter10); // fp interlock
-    read_counters[8] = read_csr(hpmcounter11); // i cache miss
     read_counters[9] = read_csr(hpmcounter12); // d cache miss
     read_counters[10] = read_csr(hpmcounter13); // d cache writeback
-    read_counters[11] = read_csr(hpmcounter14); // i TLB miss
     read_counters[12] = read_csr(hpmcounter15); // d TLB miss
     read_counters[13] = read_csr(cycle); // cycle count
     read_counters[14] = read_csr(instret); // instruction count
