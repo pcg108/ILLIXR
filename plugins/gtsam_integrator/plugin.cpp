@@ -5,7 +5,7 @@
 #include "illixr/switchboard.hpp"
 #include "third_party/filter.h"
 #include "illixr/read_hpm.h"
-#include "gtsam_integrator.hpp"
+#include "illixr/gtsam_integrator.hpp"
 
 #include <gtsam/base/Vector.h>
 #include <gtsam/navigation/AHRSFactor.h>

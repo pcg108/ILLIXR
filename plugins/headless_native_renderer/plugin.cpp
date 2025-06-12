@@ -20,6 +20,7 @@
 #include "illixr/threadloop.hpp"
 #include "illixr/vk_util/headless_sink.hpp"
 #include "illixr/vk_util/render_pass.hpp"
+#include "illixr/gtsam_integrator.hpp"
 #include "illixr/read_hpm.h"
 
 #include "illixr/plugin.hpp"
