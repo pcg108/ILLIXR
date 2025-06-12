@@ -143,6 +143,7 @@ private:
     const std::shared_ptr<pose_prediction>      pp;
     const std::shared_ptr<gpu_model>            gpu;
     const std::shared_ptr<eye_tracking_target>  et;
+    const std::shared_ptr<gtsam_integrator>     gint;
     const std::shared_ptr<const RelativeClock> _m_clock;
 
 
