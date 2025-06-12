@@ -31,7 +31,7 @@ public:
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_imu_integrator_input{sb->get_reader<imu_integrator_input>("imu_integrator_input")}
         , _m_imu_raw{sb->get_writer<imu_raw_type>("imu_raw")} {
-        spdlogger(std::getenv("GTSAM_INTEGRATOR_LOG_LEVEL"));
+        // spdlogger(std::getenv("GTSAM_INTEGRATOR_LOG_LEVEL"));
 
         const double frequency = 200;
         const double mincutoff = 10;
@@ -329,7 +329,6 @@ private:
     }
 };
 
-PLUGIN_MAIN()
 
 class gtsam_integrator_plugin : public plugin {
 public:
