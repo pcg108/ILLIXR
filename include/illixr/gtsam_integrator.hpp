@@ -11,7 +11,7 @@ using namespace ILLIXR;
 
 class gtsam_integrator : public phonebook::service {
 public:
-    [[nodiscard]] virtual void     callback(const switchboard::ptr<const imu_type>& datum) const                             = 0;
+    [[nodiscard]] virtual void     callback(const switchboard::ptr<const imu_type>& datum)                             = 0;
 
     ~gtsam_integrator() override = default;
 };
