@@ -27,7 +27,7 @@ using ImuBias = gtsam::imuBias::ConstantBias;
 class gtsam_integrator_impl : public gtsam_integrator {
 public:
     explicit gtsam_integrator_impl(const phonebook* const pb)
-        , sb{pb->lookup_impl<switchboard>()}
+        : sb{pb->lookup_impl<switchboard>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_imu_integrator_input{sb->get_reader<imu_integrator_input>("imu_integrator_input")}
         , _m_imu_raw{sb->get_writer<imu_raw_type>("imu_raw")} {
