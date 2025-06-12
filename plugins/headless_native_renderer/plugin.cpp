@@ -48,6 +48,7 @@ public:
         , pp{pb->lookup_impl<pose_prediction>()}
         , gpu{pb->lookup_impl<gpu_model>()}
         , et{pb->lookup_impl<eye_tracking_target>()}
+        , gint{pb->lookup_impl<gtsam_integrator>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
         , mtp_logger{record_logger_} {
@@ -64,6 +65,8 @@ public:
      * @brief Executes one iteration of the plugin's main loop.
      */
     void callback(const switchboard::ptr<const imu_type>& datum) {
+
+        gint->callback(datum);
 
         read_counters(counters_before);
 

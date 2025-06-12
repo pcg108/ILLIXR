@@ -5,6 +5,7 @@
 #include "illixr/switchboard.hpp"
 #include "third_party/filter.h"
 #include "illixr/read_hpm.h"
+#include "gtsam_integrator.hpp"
 
 #include <gtsam/base/Vector.h>
 #include <gtsam/navigation/AHRSFactor.h>
@@ -22,18 +23,16 @@ constexpr duration IMU_TTL{std::chrono::seconds{5}};
 
 using ImuBias = gtsam::imuBias::ConstantBias;
 
-class gtsam_integrator : public plugin {
+
+class gtsam_integrator_impl : public gtsam_integrator {
 public:
-    gtsam_integrator(std::string name_, phonebook* pb_)
-        : plugin{std::move(name_), pb_}
+    explicit gtsam_integrator_impl(const phonebook* const pb)
         , sb{pb->lookup_impl<switchboard>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_imu_integrator_input{sb->get_reader<imu_integrator_input>("imu_integrator_input")}
         , _m_imu_raw{sb->get_writer<imu_raw_type>("imu_raw")} {
         spdlogger(std::getenv("GTSAM_INTEGRATOR_LOG_LEVEL"));
-        sb->schedule<imu_type>(id, "imu", [&](const switchboard::ptr<const imu_type>& datum, size_t) {
-            callback(datum);
-        });
+
         const double frequency = 200;
         const double mincutoff = 10;
         const double beta      = 1;
@@ -330,4 +329,15 @@ private:
     }
 };
 
-PLUGIN_MAIN(gtsam_integrator)
+PLUGIN_MAIN()
+
+class gtsam_integrator_plugin : public plugin {
+public:
+    gtsam_integrator_plugin(const std::string& name, phonebook* pb)
+        : plugin{name, pb} {
+        pb->register_impl<gtsam_integrator>(
+            std::static_pointer_cast<gtsam_integrator>(std::make_shared<gtsam_integrator_impl>(pb)));
+    }
+};
+
+PLUGIN_MAIN(gtsam_integrator_plugin);
