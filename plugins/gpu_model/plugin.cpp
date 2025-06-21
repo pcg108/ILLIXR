@@ -51,7 +51,7 @@ public:
         make_pose_packets(tx_packets, current_pose.pose, 1);
         make_eye_pose_packets(tx_packets, eye_pos, 8);
 
-        tx_packets[9] = (uint32_t) shading_rate; // shading rate packet
+        tx_packets[9] = float_to_uint32(shading_rate); // shading rate packet
 
         // send to bridge
         // bridge will pause target execution while render is occurring
