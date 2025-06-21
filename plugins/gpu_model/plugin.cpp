@@ -47,13 +47,15 @@ public:
 
         // std::cout << "[illixr guest] sending gpu message" << std::endl;
 
-        tx_packets[0] = make_start_packet(queue_id, 9, read_dma_bytes);
+        tx_packets[0] = make_start_packet(queue_id, 10, read_dma_bytes);
         make_pose_packets(tx_packets, current_pose.pose, 1);
         make_eye_pose_packets(tx_packets, eye_pos, 8);
 
+        tx_packets[9] = (uint32_t) shading_rate; // shading rate packet
+
         // send to bridge
         // bridge will pause target execution while render is occurring
-        send_packets(tx_packets, 10); // start packet, 7 pose packets, 2 eye packets
+        send_packets(tx_packets, 11); // start packet, 7 pose packets, 2 eye packets, 1 shading rate packet
 
         for (int i = 0; i < num_response_expected; i++) {
             response_buffer[i] = read_packet();
@@ -62,6 +64,18 @@ public:
 
         // std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
         std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
+
+        // based on the delay time, we can update the shading rate
+        if (response_buffer[0] < 1.23) {
+            std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 0" << std::endl;
+            shading_rate = 0; 
+        } else if (response_buffer[0] < 1.26) {
+            std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 1" << std::endl;
+            shading_rate = 1; 
+        } else {
+            std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 2" << std::endl;
+            shading_rate = 2; 
+        }
 
         read_counters(counters_after);
         std::cout << "gpu_model: " << diff_to_string(counters_after, counters_before) << std::endl;
@@ -166,6 +180,8 @@ private:
 
     uint32_t tx_packets[50];
     uint32_t rx_packets[50];
+
+    int shading_rate = 0;
 
 };
 
