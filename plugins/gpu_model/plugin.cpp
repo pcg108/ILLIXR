@@ -51,7 +51,7 @@ public:
         make_pose_packets(tx_packets, current_pose.pose, 1);
         make_eye_pose_packets(tx_packets, eye_pos, 8);
 
-        tx_packets[9] = float_to_uint32(shading_rate); // shading rate packet
+        tx_packets[10] = shading_rate; // shading rate packet
 
         // send to bridge
         // bridge will pause target execution while render is occurring
@@ -68,13 +68,13 @@ public:
         // based on the delay time, we can update the shading rate
         if (response_buffer[0] < 1.23) {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 0" << std::endl;
-            shading_rate = 0.0; 
+            shading_rate = 0; 
         } else if (response_buffer[0] < 1.26) {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 1" << std::endl;
-            shading_rate = 1.0; 
+            shading_rate = 1; 
         } else {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 2" << std::endl;
-            shading_rate = 2.0; 
+            shading_rate = 2; 
         }
 
         read_counters(counters_after);
@@ -181,7 +181,7 @@ private:
     uint32_t tx_packets[50];
     uint32_t rx_packets[50];
 
-    float shading_rate = 0.0;
+    int shading_rate = 0;
 
 };
 
