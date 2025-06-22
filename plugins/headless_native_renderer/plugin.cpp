@@ -67,6 +67,8 @@ public:
      */
     void callback(const switchboard::ptr<const imu_type>& datum) {
 
+        std::cout << "start" << std::endl;
+
         gint->callback(datum);
 
         read_counters(counters_before);
@@ -113,17 +115,19 @@ public:
         // std::cout << "MTP: " << duration2double<std::milli>(_m_clock->now() - timewarp_pose.pose.sensor_time) << std::endl;
         // std::cout << "MTP: " << after_tw - before_render_pose << std::endl;
 
-        mtp_logger.log(record{mtp_record,
-            {
-                {(size_t) (after_render_pose - before_render_pose)},
-                {(size_t) (after_render - before_render)},
-                {(size_t) (after_tw_pose - before_tw_pose)},
-                {(size_t) (after_tw - before_tw)},
-                {_m_clock->now() - timewarp_pose.pose.sensor_time},
-            }});
+        // mtp_logger.log(record{mtp_record,
+        //     {
+        //         {(size_t) (after_render_pose - before_render_pose)},
+        //         {(size_t) (after_render - before_render)},
+        //         {(size_t) (after_tw_pose - before_tw_pose)},
+        //         {(size_t) (after_tw - before_tw)},
+        //         {_m_clock->now() - timewarp_pose.pose.sensor_time},
+        //     }});
+
 
         read_counters(counters_after);
         std::cout << "headless_native_renderer: " << diff_to_string(counters_after, counters_before) << std::endl;
+        std::cout << "end" << std::endl;
 
     }
 
