@@ -62,20 +62,20 @@ public:
             // std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
 
-        // std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
-        std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
-
         // based on the delay time, we can update the shading rate
-        if (response_buffer[0] < 1.23*1e6) {
-            std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 0" << std::endl;
+        if (response_buffer[0] < 1230000) {
+            std::cout << "[gpu_model] delay time: " << response_buffer[0] << "ms, setting shading rate to 0" << std::endl;
             shading_rate = 0; 
-        } else if (response_buffer[0] < 1.26*1e6) {
-            std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 1" << std::endl;
+        } else if (response_buffer[0] < 1260000) {
+            std::cout << "[gpu_model] delay time: " << response_buffer[0] << "ms, setting shading rate to 1" << std::endl;
             shading_rate = 1; 
         } else {
-            std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 2" << std::endl;
+            std::cout << "[gpu_model] delay time: " << response_buffer[0] << "ms, setting shading rate to 2" << std::endl;
             shading_rate = 2; 
         }
+
+        // std::cout << "[illixr guest] render delaying for: " << response_buffer[0] << std::endl;
+        std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
 
         read_counters(counters_after);
         std::cout << "gpu_model: " << diff_to_string(counters_after, counters_before) << std::endl;
