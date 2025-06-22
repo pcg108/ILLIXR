@@ -66,10 +66,10 @@ public:
         std::this_thread::sleep_for(std::chrono::nanoseconds(response_buffer[0]));
 
         // based on the delay time, we can update the shading rate
-        if (response_buffer[0] < 1.23) {
+        if (response_buffer[0] < 1.23*1e6) {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 0" << std::endl;
             shading_rate = 0; 
-        } else if (response_buffer[0] < 1.26) {
+        } else if (response_buffer[0] < 1.26*1e6) {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 1" << std::endl;
             shading_rate = 1; 
         } else {
@@ -153,13 +153,13 @@ private:
         // return;
         std::unique_lock lock{bridge_mutex};
 
-        std::cout << "[illixr guest] sending packets: " << std::endl;;
+        // std::cout << "[illixr guest] sending packets: " << std::endl;;
         for (int i = 0; i < len; i++) {
-            std::cout << "   " << packets[i] << std::endl;
+            // std::cout << "   " << packets[i] << std::endl;
             while ((reg_read8(GRAPHICS_STATUS) & 0x2) == 0) ;
             reg_write32(GRAPHICS_IN, packets[i]);
         }
-        std::cout << "[illixr guest] finished sending packets" << std::endl;
+        // std::cout << "[illixr guest] finished sending packets" << std::endl;
     }
 
     uint32_t float_to_uint32(float val) {
