@@ -67,7 +67,7 @@ public:
      */
     void callback(const switchboard::ptr<const imu_type>& datum) {
 
-        std::cout << "start" << std::endl;
+        std::cout << "[hnr] start" << std::endl;
 
         gint->callback(datum);
 
@@ -84,6 +84,7 @@ public:
 
         uint64_t before_render_pose = rdcycle();
 
+            // std::cout << "[hnr] render pose" << std::endl;
             auto render_pose = pp->get_fast_pose();
 
             // if (render_pose.pose.position.x() != 0) {
@@ -96,17 +97,23 @@ public:
 
         uint64_t before_render = rdcycle();
 
+            // std::cout << "[hnr] render message" << std::endl;
+
             gpu->send_gpu_render_message(render_pose, send_eye_pos, 0, 0, 1, response_buffer);
 
         uint64_t after_render = rdcycle();
 
         uint64_t before_tw_pose = rdcycle();
 
+            // std::cout << "[hnr] tw pose" << std::endl;
+
             auto timewarp_pose = pp->get_fast_pose();
 
         uint64_t after_tw_pose = rdcycle();
 
         uint64_t before_tw = rdcycle();
+
+            // std::cout << "[hnr] tw message" << std::endl;
 
             gpu->send_gpu_render_message(timewarp_pose, send_eye_pos, 1, 0, 2, response_buffer);
 
