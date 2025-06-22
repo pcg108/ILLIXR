@@ -47,15 +47,15 @@ public:
 
         // std::cout << "[illixr guest] sending gpu message" << std::endl;
 
-        tx_packets[0] = make_start_packet(queue_id, 10, read_dma_bytes);
+        tx_packets[0] = make_start_packet(queue_id, 9, read_dma_bytes);
         make_pose_packets(tx_packets, current_pose.pose, 1);
         make_eye_pose_packets(tx_packets, eye_pos, 8);
 
-        tx_packets[10] = shading_rate; // shading rate packet
+        // tx_packets[10] = shading_rate; // shading rate packet
 
         // send to bridge
         // bridge will pause target execution while render is occurring
-        send_packets(tx_packets, 11); // start packet, 7 pose packets, 2 eye packets, 1 shading rate packet
+        send_packets(tx_packets, 10); // start packet, 7 pose packets, 2 eye packets, 1 shading rate packet
 
         for (int i = 0; i < num_response_expected; i++) {
             response_buffer[i] = read_packet();
