@@ -68,13 +68,13 @@ public:
         // based on the delay time, we can update the shading rate
         if (response_buffer[0] < 1.23) {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 0" << std::endl;
-            shading_rate = 0; 
+            shading_rate = 0.0; 
         } else if (response_buffer[0] < 1.26) {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 1" << std::endl;
-            shading_rate = 1; 
+            shading_rate = 1.0; 
         } else {
             std::cout << "[gpu_model] delay time: " << response_buffer[0] / 1e6 << "ms, setting shading rate to 2" << std::endl;
-            shading_rate = 2; 
+            shading_rate = 2.0; 
         }
 
         read_counters(counters_after);
@@ -181,7 +181,7 @@ private:
     uint32_t tx_packets[50];
     uint32_t rx_packets[50];
 
-    int shading_rate = 0;
+    float shading_rate = 0.0;
 
 };
 
