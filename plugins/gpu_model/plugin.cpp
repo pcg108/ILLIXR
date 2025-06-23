@@ -95,13 +95,21 @@ public:
                 starting_average = moving_avg;  // Added missing semicolon
                 frame_count++;  // Increment to avoid staying at frame_count == 10
             } else {
-                // after 10 frames, update the shading rate based on the moving average
-                if (moving_avg <= starting_average) {
-                    shading_rate = 0; // keep it the same shading rate if the moving average is less than or equal to the starting average
-                } else if (moving_avg < starting_average * 1.03) {
-                    shading_rate = 1; // set to 1 if the moving average is less than 10% more than the starting average
+
+                // we are trying to keep the moving average within (0.98, 1) of the starting average
+                if (moving_avg < 0.98 * starting_average) {
+                    // if the moving average is less than 98% of the starting average, we can reduce the shading rate
+                    // reduce shading rate by 1, down to 0 (so this can go 2->1-> as we speed the host clock)
+                    shading_rate = std::max(0, shading_rate - 1); 
+                } else if (moving_avg < starting_average) {
+                    // keep it the same shading rate if the moving average is around the starting average
+                    shading_rate = shading_rate; 
+                } else if (moving_avg < starting_average * 1.02) {
+                    // if the moving average is above the starting average 
+                    shading_rate = std::max(2, shading_rate + 1); 
                 } else {
-                    shading_rate = 2; // set to 2 if the moving average is more than 10% more than the starting average
+                    // set to 2 (most aggressive) if the moving average is too high 
+                    shading_rate = 2; 
                 }
                 std::cout << "[gpu_model] moving average: " << moving_avg << ", starting average: " << starting_average << ", shading rate: " << shading_rate << std::endl;
             }
