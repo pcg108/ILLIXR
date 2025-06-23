@@ -67,7 +67,7 @@ public:
      */
     void callback(const switchboard::ptr<const imu_type>& datum) {
 
-        std::cout << "[hnr] start" << std::endl;
+        // std::cout << "[hnr] start" << std::endl;
 
         gint->callback(datum);
 

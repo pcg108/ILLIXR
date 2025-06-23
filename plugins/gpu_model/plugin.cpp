@@ -62,17 +62,27 @@ public:
             // std::cout << " gpu model received: " << response_buffer[i] << std::endl;
         }
 
-        // based on the delay time, we can update the shading rate
-        
-        if (response_buffer[0] < 1230000) {
-            std::cout << "[gpu_model] delay time: " << response_buffer[0] << "ms, setting shading rate to 0" << std::endl;
-            shading_rate = 0; 
-        } else if (response_buffer[0] < 1260000) {
-            std::cout << "[gpu_model] delay time: " << response_buffer[0] << "ms, setting shading rate to 1" << std::endl;
-            shading_rate = 1; 
-        } else {
-            std::cout << "[gpu_model] delay time: " << response_buffer[0] << "ms, setting shading rate to 2" << std::endl;
-            shading_rate = 2; 
+        // for render frames only
+        if (queue_id == 0) {
+            // based on the delay time, we can update the shading rate
+            double moving_avg = ema.update(response_buffer[0]);
+            if (frame_count < 10) {
+                // dont change shading rate until we have 10 frames
+                frame_count++;
+            } else if (frame_count == 10) {
+                // after 10 frames, set the starting average
+                starting_average = moving_avg
+            } else {
+                // after 10 frames, update the shading rate based on the moving average
+                if (moving_avg <= starting_average) {
+                    shading_rate = 0; // keep it the same shading rate if the moving average is less than or equal to the starting average
+                } else if (moving_avg < starting_average * 1.1) {
+                    shading_rate = 1; // set to 1 if the moving average is less than 10% more than the starting average
+                } else {
+                    shading_rate = 2; // set to 2 if  the moving average is more than 10% more than the starting average
+                }
+                std::cout << "[gpu_model] moving average: " << moving_avg << ", starting average: " << starting_average << ", shading rate: " << shading_rate << std::endl;
+            }
         }
             
 
@@ -185,6 +195,30 @@ private:
 
     int shading_rate = 0;
 
+    ExponentialMovingAverage ema(0.1);
+    int frame_count = 0;
+    double starting_average = 0.0;
+
+};
+
+class ExponentialMovingAverage {
+public:
+    ExponentialMovingAverage(double alpha) : alpha_(alpha), initialized_(false), ema_(0.0) {}
+
+    double update(double new_value) {
+        if (!initialized_) {
+            ema_ = new_value;
+            initialized_ = true;
+        } else {
+            ema_ = alpha_ * new_value + (1.0 - alpha_) * ema_;
+        }
+        return ema_;
+    }
+
+private:
+    double alpha_;
+    bool initialized_;
+    double ema_;
 };
 
 class gpu_model_plugin : public plugin {
