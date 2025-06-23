@@ -106,7 +106,7 @@ public:
                     shading_rate = shading_rate; 
                 } else if (moving_avg < starting_average * 1.02) {
                     // if the moving average is above the starting average 
-                    shading_rate = std::max(2, shading_rate + 1); 
+                    shading_rate = std::min(2, shading_rate + 1); 
                 } else {
                     // set to 2 (most aggressive) if the moving average is too high 
                     shading_rate = 2; 
