@@ -21,6 +21,26 @@
 
 using namespace ILLIXR;
 
+class ExponentialMovingAverage {
+public:
+    ExponentialMovingAverage(double alpha) : alpha_(alpha), initialized_(false), ema_(0.0) {}
+
+    double update(double new_value) {
+        if (!initialized_) {
+            ema_ = new_value;
+            initialized_ = true;
+        } else {
+            ema_ = alpha_ * new_value + (1.0 - alpha_) * ema_;
+        }
+        return ema_;
+    }
+
+private:
+    double alpha_;
+    bool initialized_;
+    double ema_;
+};
+
 class gpu_model_impl : public gpu_model {
 public:
     explicit gpu_model_impl(const phonebook* const pb)
@@ -79,7 +99,7 @@ public:
                 } else if (moving_avg < starting_average * 1.1) {
                     shading_rate = 1; // set to 1 if the moving average is less than 10% more than the starting average
                 } else {
-                    shading_rate = 2; // set to 2 if  the moving average is more than 10% more than the starting average
+                    shading_rate = 2; // set to 2 if the moving average is more than 10% more than the starting average
                 }
                 std::cout << "[gpu_model] moving average: " << moving_avg << ", starting average: " << starting_average << ", shading rate: " << shading_rate << std::endl;
             }
@@ -199,26 +219,6 @@ private:
     int frame_count = 0;
     double starting_average = 0.0;
 
-};
-
-class ExponentialMovingAverage {
-public:
-    ExponentialMovingAverage(double alpha) : alpha_(alpha), initialized_(false), ema_(0.0) {}
-
-    double update(double new_value) {
-        if (!initialized_) {
-            ema_ = new_value;
-            initialized_ = true;
-        } else {
-            ema_ = alpha_ * new_value + (1.0 - alpha_) * ema_;
-        }
-        return ema_;
-    }
-
-private:
-    double alpha_;
-    bool initialized_;
-    double ema_;
 };
 
 class gpu_model_plugin : public plugin {
