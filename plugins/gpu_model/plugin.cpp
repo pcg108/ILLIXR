@@ -98,7 +98,7 @@ public:
                 // after 10 frames, update the shading rate based on the moving average
                 if (moving_avg <= starting_average) {
                     shading_rate = 0; // keep it the same shading rate if the moving average is less than or equal to the starting average
-                } else if (moving_avg < starting_average * 1.1) {
+                } else if (moving_avg < starting_average * 1.03) {
                     shading_rate = 1; // set to 1 if the moving average is less than 10% more than the starting average
                 } else {
                     shading_rate = 2; // set to 2 if the moving average is more than 10% more than the starting average
