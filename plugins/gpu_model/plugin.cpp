@@ -46,6 +46,7 @@ public:
     explicit gpu_model_impl(const phonebook* const pb)
         : sb{pb->lookup_impl<switchboard>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
+        , ema(0.1)
     {
 
         std::cout << "[illixr target] mapping MMIO" << std::endl;
@@ -91,7 +92,8 @@ public:
                 frame_count++;
             } else if (frame_count == 10) {
                 // after 10 frames, set the starting average
-                starting_average = moving_avg
+                starting_average = moving_avg;  // Added missing semicolon
+                frame_count++;  // Increment to avoid staying at frame_count == 10
             } else {
                 // after 10 frames, update the shading rate based on the moving average
                 if (moving_avg <= starting_average) {
@@ -215,7 +217,7 @@ private:
 
     int shading_rate = 0;
 
-    ExponentialMovingAverage ema(0.1);
+    ExponentialMovingAverage ema;  
     int frame_count = 0;
     double starting_average = 0.0;
 
