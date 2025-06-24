@@ -67,7 +67,7 @@ public:
      */
     void callback(const switchboard::ptr<const imu_type>& datum) {
 
-        // std::cout << "[hnr] start" << std::endl;
+        std::cout << "[hnr] start" << std::endl;
 
         gint->callback(datum);
 
@@ -86,6 +86,9 @@ public:
 
             // std::cout << "[hnr] render pose" << std::endl;
             auto render_pose = pp->get_fast_pose();
+
+            std::cout << "render_pose: " << render_pose.pose.position.x() << " " << render_pose.pose.position.y() << " " << render_pose.pose.position.z() << " " << render_pose.pose.orientation.w() << " " << render_pose.pose.orientation.x() << " " << render_pose.pose.orientation.y() << " " << render_pose.pose.orientation.z() << std::endl;
+            std::cout << "imu_time: " << datum->imu_real_time.time_since_epoch().count() << std::endl; 
 
             // if (render_pose.pose.position.x() != 0) {
                 // send_eye_pos = et->get_eye_position();
