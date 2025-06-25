@@ -209,17 +209,19 @@ public:
                             uint32_t socket_data[15];
                             std::memcpy(socket_data, socket_buffer, bytes_read);
 
-                            uint32_t* float_data = reinterpret_cast<uint32_t*>(socket_data);
-                            // float* float_data = reinterpret_cast<float*>(socket_data);
+                            // uint32_t* float_data = reinterpret_cast<uint32_t*>(socket_data);
+                            float* float_data = reinterpret_cast<float*>(socket_data);
 
                             std::cout << "[ILLIXR host server] Received from bridge: ";
-                            for (size_t i = 0; i < 11; ++i) {
+                            for (size_t i = 0; i < 12; ++i) {
                                 std::cout << float_data[i] << " ";
                             }
                             std::cout << std::endl;
 
-                            int queue_id = (int) float_data[0];
-                            int dma_read = (int) float_data[1];
+                            int queue_id = float_to_decimal(float_data[0]);
+                            int dma_read = float_to_decimal(float_data[1]);
+                            // int queue_id = float_data[0];
+                            // int dma_read = float_data[1];
                             std::cout << "[ILLIXR host server] Received queue ID: " << queue_id << std::endl;
 
                             double time_taken = 0;   
@@ -236,6 +238,9 @@ public:
                                 Eigen::Quaternionf q(float_data[5], float_data[6], float_data[7], float_data[8]);
                                 eye_position_type eye_pos(_m_clock->now(), float_data[9], float_data[10]);
 
+                                int shading_rate = float_to_decimal(float_data[11]);
+                                std::cout << "shading rate: " << shading_rate << std::endl;
+
                                 pose_type latest_pose = pose_type(t, v, q);
 
                                 // if we are rendering, use this pose and save it for the timewarp
@@ -244,7 +249,7 @@ public:
                                 // Get the current fast pose and update the uniforms
                                 src->update_uniforms(render_pose, render_pose);
 
-                                update_shading_rate(eye_pos.eye_x, eye_pos.eye_y);
+                                update_shading_rate(eye_pos.eye_x, eye_pos.eye_y, shading_rate);
                                 
                                 // Record the command buffer
                                 VK_ASSERT_SUCCESS(vkResetCommandBuffer(app_command_buffer, 0))
@@ -372,6 +377,12 @@ public:
     }
 
 private:
+
+    uint32_t float_to_decimal(const float float_data) {
+        uint32_t int_value;
+        std::memcpy(&int_value, &float_data, sizeof(uint32_t));
+        return int_value;
+    }
 
     double get_timestamp(VkQueryPool qp) {
         uint64_t timestamps[2] = {};
@@ -650,8 +661,22 @@ private:
         
     }
 
+    std::string format_float_array_as_path(const float* data, size_t count) {
+        std::ostringstream oss;
+        oss << "/scratch/prashanth/ILLIXR/build/saved_frames/";
 
-    int save_frame(uint32_t* float_data) {
+        for (size_t i = 0; i < count; ++i) {
+            oss << std::fixed << std::setprecision(2) << data[i];
+            if (i + 1 < count) {
+                oss << "_";
+            }
+        }
+
+        oss << ".ppm";
+        return oss.str();
+    }
+
+    int save_frame(float* float_data) {
 
         // create image in host memory 
         VkImage dstImage;
@@ -741,16 +766,19 @@ private:
         }
 
         
-        std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f.ppm", 
-                                                                                    float_data[2],
-                                                                                    float_data[3],
-                                                                                    float_data[4],
-                                                                                    float_data[5],
-                                                                                    float_data[6],
-                                                                                    float_data[7],
-                                                                                    float_data[8],
-                                                                                    float_data[9],
-                                                                                    float_data[10]);
+        // std::string fname = formatted("/scratch/prashanth/ILLIXR/build/saved_frames/%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f_%0.2f.ppm", 
+        //                                                                             float_data[2],
+        //                                                                             float_data[3],
+        //                                                                             float_data[4],
+        //                                                                             float_data[5],
+        //                                                                             float_data[6],
+        //                                                                             float_data[7],
+        //                                                                             float_data[8],
+        //                                                                             float_data[9],
+        //                                                                             float_data[10]);
+
+        std::string fname = format_float_array_as_path(float_data, 9);
+
         const char* filename = fname.c_str();
 
         std::ofstream file(filename, std::ofstream::binary);
@@ -989,10 +1017,23 @@ private:
         }
     }
 
-    void update_shading_rate(float eye_x, float eye_y) {
+    void update_shading_rate(float eye_x, float eye_y, int shading_rate) {
 
         // Populate the buffer with lowest possible shading rate pattern (4x4)
-        uint8_t  val                       = (4 >> 1) | (4 << 1);
+
+        uint8_t  val; 
+        if (shading_rate == 0) {
+            val = (1 >> 1) | (1 << 1);
+        } else if (shading_rate == 1) {
+            val = (2 >> 1) | (2 << 1);
+        } else if (shading_rate == 2) {
+            val = (4 >> 1) | (4 << 1);
+        } else {
+            std::cout << "[ILLIXR headless_native_renderer] Invalid shading rate: " << shading_rate << std::endl;
+            throw std::runtime_error("Invalid shading rate");
+        }
+
+                          
         // std::cout << "Initial: " << static_cast<int>(val) << std::endl;
         uint8_t *shading_rate_pattern_data = new uint8_t[buffer_size];
         memset(shading_rate_pattern_data, val, buffer_size);
@@ -1368,14 +1409,14 @@ private:
     }
 
     template <typename... Args>
-    std::string formatted(const char* format, Args... args) {
-        int size = std::snprintf(nullptr, 0, format, args...) + 1;
+    std::string formatted(const char* format, Args&&... args) {
+        int size = std::snprintf(nullptr, 0, format, std::forward<Args>(args)...) + 1;
         if (size <= 0) {
             throw std::runtime_error("Error during formatting.");
         }        
         std::string result(size, '\0');        
-        std::snprintf(&result[0], size, format, args...);        
-        result.resize(size - 1);
+        std::snprintf(&result[0], size, format, std::forward<Args>(args)...);        
+        result.resize(size - 1); // remove the null terminator
         return result;
     }
 
