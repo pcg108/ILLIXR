@@ -90,6 +90,7 @@ public:
         // slow_pose and imu_raw, do pose prediction
 
         double                                              dt = duration2double(future_timestamp - imu_raw->imu_time);
+        dt = 3000000;
         std::pair<Eigen::Matrix<double, 13, 1>, time_point> predictor_result = predict_mean_rk4(dt);
 
         auto state_plus = predictor_result.first;
