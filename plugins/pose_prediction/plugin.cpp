@@ -226,7 +226,9 @@ private:
     // Returns a pair of the predictor state_plus and the time associated with the
     // most recent imu reading used to perform this prediction.
     
-    std::pair<Eigen::Matrix<double, 13, 1>, time_point> predict_mean_rk4(double dt, switchboard::ptr<const imu_raw_type> imu_raw) const {
+    std::pair<Eigen::Matrix<double, 13, 1>, time_point> predict_mean_rk4(double dt) const {
+        switchboard::ptr<const imu_raw_type> imu_raw = _m_imu_raw.get_ro();
+
         // Pre-compute things
         Eigen::Vector3d w_hat   = imu_raw->w_hat;
         Eigen::Vector3d a_hat   = imu_raw->a_hat;
