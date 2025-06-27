@@ -93,11 +93,21 @@ public:
         dt = 3000000;
         std::pair<Eigen::Matrix<double, 13, 1>, time_point> predictor_result = predict_mean_rk4(dt);
 
+        std::cout << "w_hat: " << imu_raw->w_hat(0) << " " << imu_raw->w_hat(1) << " " << imu_raw->w_hat(2) << std::endl;
+        std::cout << "a_hat: " << imu_raw->a_hat(0) << " " << imu_raw->a_hat(1) << " " << imu_raw->a_hat(2) << std::endl;
+        std::cout << "w_hat2: " << imu_raw->w_hat2(0) << " " << imu_raw->w_hat2(1) << " " << imu_raw->w_hat2(2) << std::endl;
+        std::cout << "a_hat2: " << imu_raw->a_hat2(0) << " " << imu_raw->a_hat2(1) << " " << imu_raw->a_hat2(2) << std::endl;
+        std::cout << "pos: " << imu_raw->pos(0) << " " << imu_raw->pos(1) << " " << imu_raw->pos(2) << std::endl;
+        std::cout << "vel: " << imu_raw->vel(0) << " " << imu_raw->vel(1) << " " << imu_raw->vel(2) << std::endl;
+        std::cout << "quat: " << imu_raw->quat.w() << " " << imu_raw->quat.x() << " " << imu_raw->quat.y() << " " << imu_raw->quat.z() << std::endl;
+        std::cout << "pp IMU time: " << imu_raw->imu_time.time_since_epoch().count() << std::endl;
+
         auto state_plus = predictor_result.first;
 
         // predictor_imu_time is the most recent IMU sample that was used to compute the prediction.
         auto predictor_imu_time = predictor_result.second;
 
+        
         pose_type predicted_pose =
             correct_pose({predictor_imu_time,
                           Eigen::Vector3f{static_cast<float>(state_plus(4)), static_cast<float>(state_plus(5)),
@@ -215,23 +225,31 @@ private:
     // Slightly modified copy of OpenVINS method found in propagator.cpp
     // Returns a pair of the predictor state_plus and the time associated with the
     // most recent imu reading used to perform this prediction.
-    std::pair<Eigen::Matrix<double, 13, 1>, time_point> predict_mean_rk4(double dt) const {
+    
+    std::pair<Eigen::Matrix<double, 13, 1>, time_point> predict_mean_rk4(double dt, switchboard::ptr<const imu_raw_type> imu_raw) const {
         // Pre-compute things
-        switchboard::ptr<const imu_raw_type> imu_raw = _m_imu_raw.get_ro();
-
         Eigen::Vector3d w_hat   = imu_raw->w_hat;
         Eigen::Vector3d a_hat   = imu_raw->a_hat;
         Eigen::Vector3d w_alpha = (imu_raw->w_hat2 - imu_raw->w_hat) / dt;
         Eigen::Vector3d a_jerk  = (imu_raw->a_hat2 - imu_raw->a_hat) / dt;
 
+        std::cout << "w_hat: " << w_hat.transpose() << "\n";
+        std::cout << "a_hat: " << a_hat.transpose() << "\n";
+        std::cout << "w_alpha: " << w_alpha.transpose() << "\n";
+        std::cout << "a_jerk: " << a_jerk.transpose() << "\n";
+
         // y0 ================
         Eigen::Quaterniond temp_quat = imu_raw->quat;
-        Eigen::Vector4d    q_0       = {temp_quat.x(), temp_quat.y(), temp_quat.z(), temp_quat.w()};
-        Eigen::Vector3d    p_0       = imu_raw->pos;
-        Eigen::Vector3d    v_0       = imu_raw->vel;
+        Eigen::Vector4d q_0 = {temp_quat.x(), temp_quat.y(), temp_quat.z(), temp_quat.w()};
+        Eigen::Vector3d p_0 = imu_raw->pos;
+        Eigen::Vector3d v_0 = imu_raw->vel;
 
-        // k1 ================
-        Eigen::Vector4d dq_0   = {0, 0, 0, 1};
+        std::cout << "q_0: " << q_0.transpose() << "\n";
+        std::cout << "p_0: " << p_0.transpose() << "\n";
+        std::cout << "v_0: " << v_0.transpose() << "\n";
+
+        // k1
+        Eigen::Vector4d dq_0 = {0, 0, 0, 1};
         Eigen::Vector4d q0_dot = 0.5 * Omega(w_hat) * dq_0;
         Eigen::Matrix3d R_Gto0 = quat_2_Rot(quat_multiply(dq_0, q_0));
         Eigen::Vector3d v0_dot = R_Gto0.transpose() * a_hat - Eigen::Vector3d{0.0, 0.0, 9.81};
@@ -240,7 +258,11 @@ private:
         Eigen::Vector3d k1_p = v_0 * dt;
         Eigen::Vector3d k1_v = v0_dot * dt;
 
-        // k2 ================
+        std::cout << "k1_q: " << k1_q.transpose() << "\n";
+        std::cout << "k1_p: " << k1_p.transpose() << "\n";
+        std::cout << "k1_v: " << k1_v.transpose() << "\n";
+
+        // k2
         w_hat += 0.5 * w_alpha * dt;
         a_hat += 0.5 * a_jerk * dt;
 
@@ -255,9 +277,12 @@ private:
         Eigen::Vector3d k2_p = v_1 * dt;
         Eigen::Vector3d k2_v = v1_dot * dt;
 
-        // k3 ================
+        std::cout << "k2_q: " << k2_q.transpose() << "\n";
+        std::cout << "k2_p: " << k2_p.transpose() << "\n";
+        std::cout << "k2_v: " << k2_v.transpose() << "\n";
+
+        // k3
         Eigen::Vector4d dq_2 = quatnorm(dq_0 + 0.5 * k2_q);
-        // Eigen::Vector3d p_2 = p_0+0.5*k2_p;
         Eigen::Vector3d v_2 = v_0 + 0.5 * k2_v;
 
         Eigen::Vector4d q2_dot = 0.5 * Omega(w_hat) * dq_2;
@@ -268,12 +293,15 @@ private:
         Eigen::Vector3d k3_p = v_2 * dt;
         Eigen::Vector3d k3_v = v2_dot * dt;
 
-        // k4 ================
+        std::cout << "k3_q: " << k3_q.transpose() << "\n";
+        std::cout << "k3_p: " << k3_p.transpose() << "\n";
+        std::cout << "k3_v: " << k3_v.transpose() << "\n";
+
+        // k4
         w_hat += 0.5 * w_alpha * dt;
         a_hat += 0.5 * a_jerk * dt;
 
         Eigen::Vector4d dq_3 = quatnorm(dq_0 + k3_q);
-        // Eigen::Vector3d p_3 = p_0+k3_p;
         Eigen::Vector3d v_3 = v_0 + k3_v;
 
         Eigen::Vector4d q3_dot = 0.5 * Omega(w_hat) * dq_3;
@@ -284,15 +312,22 @@ private:
         Eigen::Vector3d k4_p = v_3 * dt;
         Eigen::Vector3d k4_v = v3_dot * dt;
 
-        // y+dt ================
+        std::cout << "k4_q: " << k4_q.transpose() << "\n";
+        std::cout << "k4_p: " << k4_p.transpose() << "\n";
+        std::cout << "k4_v: " << k4_v.transpose() << "\n";
+
+        // final result
         Eigen::Matrix<double, 13, 1> state_plus = Eigen::Matrix<double, 13, 1>::Zero();
         Eigen::Vector4d dq = quatnorm(dq_0 + (1.0 / 6.0) * k1_q + (1.0 / 3.0) * k2_q + (1.0 / 3.0) * k3_q + (1.0 / 6.0) * k4_q);
         state_plus.block(0, 0, 4, 1) = quat_multiply(dq, q_0);
         state_plus.block(4, 0, 3, 1) = p_0 + (1.0 / 6.0) * k1_p + (1.0 / 3.0) * k2_p + (1.0 / 3.0) * k3_p + (1.0 / 6.0) * k4_p;
         state_plus.block(7, 0, 3, 1) = v_0 + (1.0 / 6.0) * k1_v + (1.0 / 3.0) * k2_v + (1.0 / 3.0) * k3_v + (1.0 / 6.0) * k4_v;
 
+        std::cout << "state_plus:\n" << state_plus.transpose() << "\n";
+
         return {state_plus, imu_raw->imu_time};
     }
+
 
     /**
      * @brief Integrated quaternion from angular velocity
