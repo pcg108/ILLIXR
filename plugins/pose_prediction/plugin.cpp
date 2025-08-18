@@ -93,14 +93,14 @@ public:
         dt = 3000000;
         std::pair<Eigen::Matrix<double, 13, 1>, time_point> predictor_result = predict_mean_rk4(dt);
 
-        std::cout << "w_hat: " << imu_raw->w_hat(0) << " " << imu_raw->w_hat(1) << " " << imu_raw->w_hat(2) << std::endl;
-        std::cout << "a_hat: " << imu_raw->a_hat(0) << " " << imu_raw->a_hat(1) << " " << imu_raw->a_hat(2) << std::endl;
-        std::cout << "w_hat2: " << imu_raw->w_hat2(0) << " " << imu_raw->w_hat2(1) << " " << imu_raw->w_hat2(2) << std::endl;
-        std::cout << "a_hat2: " << imu_raw->a_hat2(0) << " " << imu_raw->a_hat2(1) << " " << imu_raw->a_hat2(2) << std::endl;
-        std::cout << "pos: " << imu_raw->pos(0) << " " << imu_raw->pos(1) << " " << imu_raw->pos(2) << std::endl;
-        std::cout << "vel: " << imu_raw->vel(0) << " " << imu_raw->vel(1) << " " << imu_raw->vel(2) << std::endl;
-        std::cout << "quat: " << imu_raw->quat.w() << " " << imu_raw->quat.x() << " " << imu_raw->quat.y() << " " << imu_raw->quat.z() << std::endl;
-        std::cout << "pp IMU time: " << imu_raw->imu_time.time_since_epoch().count() << std::endl;
+        // std::cout << "w_hat: " << imu_raw->w_hat(0) << " " << imu_raw->w_hat(1) << " " << imu_raw->w_hat(2) << std::endl;
+        // std::cout << "a_hat: " << imu_raw->a_hat(0) << " " << imu_raw->a_hat(1) << " " << imu_raw->a_hat(2) << std::endl;
+        // std::cout << "w_hat2: " << imu_raw->w_hat2(0) << " " << imu_raw->w_hat2(1) << " " << imu_raw->w_hat2(2) << std::endl;
+        // std::cout << "a_hat2: " << imu_raw->a_hat2(0) << " " << imu_raw->a_hat2(1) << " " << imu_raw->a_hat2(2) << std::endl;
+        // std::cout << "pos: " << imu_raw->pos(0) << " " << imu_raw->pos(1) << " " << imu_raw->pos(2) << std::endl;
+        // std::cout << "vel: " << imu_raw->vel(0) << " " << imu_raw->vel(1) << " " << imu_raw->vel(2) << std::endl;
+        // std::cout << "quat: " << imu_raw->quat.w() << " " << imu_raw->quat.x() << " " << imu_raw->quat.y() << " " << imu_raw->quat.z() << std::endl;
+        // std::cout << "pp IMU time: " << imu_raw->imu_time.time_since_epoch().count() << std::endl;
 
         auto state_plus = predictor_result.first;
 
@@ -235,10 +235,10 @@ private:
         Eigen::Vector3d w_alpha = (imu_raw->w_hat2 - imu_raw->w_hat) / dt;
         Eigen::Vector3d a_jerk  = (imu_raw->a_hat2 - imu_raw->a_hat) / dt;
 
-        std::cout << "w_hat: " << w_hat.transpose() << "\n";
-        std::cout << "a_hat: " << a_hat.transpose() << "\n";
-        std::cout << "w_alpha: " << w_alpha.transpose() << "\n";
-        std::cout << "a_jerk: " << a_jerk.transpose() << "\n";
+        // std::cout << "w_hat: " << w_hat.transpose() << "\n";
+        // std::cout << "a_hat: " << a_hat.transpose() << "\n";
+        // std::cout << "w_alpha: " << w_alpha.transpose() << "\n";
+        // std::cout << "a_jerk: " << a_jerk.transpose() << "\n";
 
         // y0 ================
         Eigen::Quaterniond temp_quat = imu_raw->quat;
@@ -246,9 +246,9 @@ private:
         Eigen::Vector3d p_0 = imu_raw->pos;
         Eigen::Vector3d v_0 = imu_raw->vel;
 
-        std::cout << "q_0: " << q_0.transpose() << "\n";
-        std::cout << "p_0: " << p_0.transpose() << "\n";
-        std::cout << "v_0: " << v_0.transpose() << "\n";
+        // std::cout << "q_0: " << q_0.transpose() << "\n";
+        // std::cout << "p_0: " << p_0.transpose() << "\n";
+        // std::cout << "v_0: " << v_0.transpose() << "\n";
 
         // k1
         Eigen::Vector4d dq_0 = {0, 0, 0, 1};
@@ -260,9 +260,9 @@ private:
         Eigen::Vector3d k1_p = v_0 * dt;
         Eigen::Vector3d k1_v = v0_dot * dt;
 
-        std::cout << "k1_q: " << k1_q.transpose() << "\n";
-        std::cout << "k1_p: " << k1_p.transpose() << "\n";
-        std::cout << "k1_v: " << k1_v.transpose() << "\n";
+        // std::cout << "k1_q: " << k1_q.transpose() << "\n";
+        // std::cout << "k1_p: " << k1_p.transpose() << "\n";
+        // std::cout << "k1_v: " << k1_v.transpose() << "\n";
 
         // k2
         w_hat += 0.5 * w_alpha * dt;
@@ -279,9 +279,9 @@ private:
         Eigen::Vector3d k2_p = v_1 * dt;
         Eigen::Vector3d k2_v = v1_dot * dt;
 
-        std::cout << "k2_q: " << k2_q.transpose() << "\n";
-        std::cout << "k2_p: " << k2_p.transpose() << "\n";
-        std::cout << "k2_v: " << k2_v.transpose() << "\n";
+        // std::cout << "k2_q: " << k2_q.transpose() << "\n";
+        // std::cout << "k2_p: " << k2_p.transpose() << "\n";
+        // std::cout << "k2_v: " << k2_v.transpose() << "\n";
 
         // k3
         Eigen::Vector4d dq_2 = quatnorm(dq_0 + 0.5 * k2_q);
@@ -295,9 +295,9 @@ private:
         Eigen::Vector3d k3_p = v_2 * dt;
         Eigen::Vector3d k3_v = v2_dot * dt;
 
-        std::cout << "k3_q: " << k3_q.transpose() << "\n";
-        std::cout << "k3_p: " << k3_p.transpose() << "\n";
-        std::cout << "k3_v: " << k3_v.transpose() << "\n";
+        // std::cout << "k3_q: " << k3_q.transpose() << "\n";
+        // std::cout << "k3_p: " << k3_p.transpose() << "\n";
+        // std::cout << "k3_v: " << k3_v.transpose() << "\n";
 
         // k4
         w_hat += 0.5 * w_alpha * dt;
@@ -314,9 +314,9 @@ private:
         Eigen::Vector3d k4_p = v_3 * dt;
         Eigen::Vector3d k4_v = v3_dot * dt;
 
-        std::cout << "k4_q: " << k4_q.transpose() << "\n";
-        std::cout << "k4_p: " << k4_p.transpose() << "\n";
-        std::cout << "k4_v: " << k4_v.transpose() << "\n";
+        // std::cout << "k4_q: " << k4_q.transpose() << "\n";
+        // std::cout << "k4_p: " << k4_p.transpose() << "\n";
+        // std::cout << "k4_v: " << k4_v.transpose() << "\n";
 
         // final result
         Eigen::Matrix<double, 13, 1> state_plus = Eigen::Matrix<double, 13, 1>::Zero();
@@ -325,7 +325,7 @@ private:
         state_plus.block(4, 0, 3, 1) = p_0 + (1.0 / 6.0) * k1_p + (1.0 / 3.0) * k2_p + (1.0 / 3.0) * k3_p + (1.0 / 6.0) * k4_p;
         state_plus.block(7, 0, 3, 1) = v_0 + (1.0 / 6.0) * k1_v + (1.0 / 3.0) * k2_v + (1.0 / 3.0) * k3_v + (1.0 / 6.0) * k4_v;
 
-        std::cout << "state_plus:\n" << state_plus.transpose() << "\n";
+        // std::cout << "state_plus:\n" << state_plus.transpose() << "\n";
 
         return {state_plus, imu_raw->imu_time};
     }
