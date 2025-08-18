@@ -128,6 +128,13 @@ public:
         read_counters(counters_after);
         std::cout << "pose_prediction: " << diff_to_string(counters_after, counters_before) << std::endl;
 
+
+        return fast_pose_type{
+                .pose                  = correct_pose(*slow_pose),
+                .predict_computed_time = _m_clock->now(),
+                .predict_target_time   = future_timestamp,
+            };
+
         // Several timestamps are logged:
         //       - the prediction compute time (time when this prediction was computed, i.e., now)
         //       - the prediction target (the time that was requested for this pose.)
