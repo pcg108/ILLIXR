@@ -105,12 +105,12 @@ public:
         std::string socket_path = std::string(home) + std::string(SOCKET_PATH);
 
         // Remove existing socket file
-        unlink(socket_path);
+        unlink(socket_path.c_str());
 
         // Bind socket
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+        strncpy(addr.sun_path, socket_path.c_str(), sizeof(addr.sun_path) - 1);
 
         if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             std::cout << "[ILLIXR host server] Error binding server" << std::endl;
