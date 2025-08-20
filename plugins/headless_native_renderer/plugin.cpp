@@ -39,7 +39,7 @@ const record_header mtp_record{"mtp_record",
         {"time_taken", typeid(std::size_t)},
     }};
 
-const char* SOCKET_PATH = "illixr-host";
+const char* SOCKET_PATH = "/illixr-host";
 const int BUFFER_SIZE = 1024;
 const int MAX_CLIENTS = 10;
 
