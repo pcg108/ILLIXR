@@ -333,7 +333,7 @@ public:
                                 cv::Mat img = cv::Mat(height_, width_, CV_32FC1, input_image_.data());
 
                                 auto start = _m_clock->now();
-                                eye_position_type eye_pos; // = et->get_eye_position(img);
+                                eye_position_type eye_pos = eye_position_type{_m_clock->now(), 0, 0}; // = et->get_eye_position(img);
                                 auto end = _m_clock->now();
 
                                 time_taken = duration2double<std::nano>(end - start);
