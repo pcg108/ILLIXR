@@ -122,7 +122,7 @@ profile:
 
 profile:
   name: gpu_offload
-  plugins: headless_vk,headless_timewarp_vk,headless_vkdemo,eye_tracking_host,headless_native_renderer
+  plugins: headless_vk,headless_timewarp_vk,headless_vkdemo,headless_native_renderer # eye_tracking_host
   build_flags: -DILLIXR_VULKAN
   build_type: Release
   enable_offload: false
