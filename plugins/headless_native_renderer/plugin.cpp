@@ -25,7 +25,7 @@
 #include "illixr/pose_prediction.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
-#include "illixr/eye_tracking_host.hpp"
+// #include "illixr/eye_tracking_host.hpp"
 #include "illixr/vk_util/headless_sink.hpp"
 #include "illixr/vk_util/render_pass.hpp"
 
@@ -53,7 +53,7 @@ public:
         , sb{pb->lookup_impl<switchboard>()}
         , hs{pb->lookup_impl<headless_sink>()}
         , tw{pb->lookup_impl<timewarp>()}
-        , et{pb->lookup_impl<eye_tracking_host>()}
+        // , et{pb->lookup_impl<eye_tracking_host>()}
         , src{pb->lookup_impl<app>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , last_fps_update{std::chrono::duration<long, std::nano>{0}}
@@ -333,7 +333,7 @@ public:
                                 cv::Mat img = cv::Mat(height_, width_, CV_32FC1, input_image_.data());
 
                                 auto start = _m_clock->now();
-                                eye_position_type eye_pos = et->get_eye_position(img);
+                                eye_position_type eye_pos; // = et->get_eye_position(img);
                                 auto end = _m_clock->now();
 
                                 time_taken = duration2double<std::nano>(end - start);
@@ -1421,7 +1421,7 @@ private:
     }
 
     const std::shared_ptr<switchboard>         sb;
-    const std::shared_ptr<eye_tracking_host> et;
+    // const std::shared_ptr<eye_tracking_host> et;
     const std::shared_ptr<headless_sink>       hs;
     const std::shared_ptr<timewarp>            tw;
     const std::shared_ptr<app>                 src;
