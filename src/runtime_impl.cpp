@@ -2,7 +2,7 @@
 
 #include "illixr/dynamic_lib.hpp"
 #include "illixr/error_util.hpp"
-#include "illixr/extended_window.hpp"
+// #include "illixr/extended_window.hpp"
 #include "illixr/global_module_defs.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/plugin.hpp"
@@ -12,7 +12,7 @@
 #include "sqlite_record_logger.hpp"
 
 #include <algorithm>
-#include <GL/glx.h>
+// #include <GL/glx.h>
 #include <memory>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

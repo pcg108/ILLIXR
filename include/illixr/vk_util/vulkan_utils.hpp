@@ -16,7 +16,7 @@
 #include <glm/gtx/hash.hpp>
 #include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+// #include <GLFW/glfw3.h>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"

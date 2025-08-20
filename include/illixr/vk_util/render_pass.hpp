@@ -5,7 +5,7 @@
 #include "../data_format.hpp"
 #include "../phonebook.hpp"
 
-#include <GLFW/glfw3.h>
+// #include <GLFW/glfw3.h>
 
 using namespace ILLIXR;
 

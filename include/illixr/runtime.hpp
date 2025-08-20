@@ -2,7 +2,7 @@
 
 #include "illixr/phonebook.hpp"
 
-#include <GL/glx.h>
+// #include <GL/glx.h>
 #include <string>
 #include <vector>
 
