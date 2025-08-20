@@ -102,7 +102,7 @@ public:
 
         
         const char* home = getenv("HOME");
-        socket_path = std::string(home) + std::string(SOCKET_PATH);
+        std::string socket_path = std::string(home) + std::string(SOCKET_PATH);
 
         // Remove existing socket file
         unlink(socket_path);
