@@ -100,13 +100,17 @@ public:
             perror("socket");
         }
 
+        
+        const char* home = getenv("HOME");
+        socket_path = std::string(home) + std::string(SOCKET_PATH);
+
         // Remove existing socket file
-        unlink(SOCKET_PATH);
+        unlink(socket_path);
 
         // Bind socket
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
+        strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
 
         if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             std::cout << "[ILLIXR host server] Error binding server" << std::endl;
@@ -127,7 +131,7 @@ public:
         server_pollfd.events = POLLIN;
         fds.push_back(server_pollfd);
 
-        std::cout << "[ILLIXR host server] ILLIXR server listening on: " << SOCKET_PATH << std::endl;
+        std::cout << "[ILLIXR host server] ILLIXR server listening on: " << socket_path << std::endl;
 
         xdma_h2cfd = open("/dev/xdma0_h2c_0", O_WRONLY);
         xdma_c2hfd = open("/dev/xdma0_c2h_0", O_RDONLY);
