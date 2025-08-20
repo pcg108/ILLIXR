@@ -2,7 +2,7 @@
 
 #undef Success // For 'Success' conflict
 #include <eigen3/Eigen/Dense>
-#include <GL/gl.h>
+// #include <GL/gl.h>
 #include <utility>
 //#undef Complex // For 'Complex' conflict
 
@@ -153,6 +153,7 @@ typedef struct vk_image_handle {
 // This is used to share swapchain images between ILLIXR and Monado.
 // When Monado uses its GL pipeline, it's enough to just share a context during creation.
 // Otherwise, file descriptors are needed to share the images.
+/*
 struct image_handle : public switchboard::event {
     graphics_api type;
 
@@ -184,6 +185,7 @@ struct image_handle : public switchboard::event {
         , usage{usage_} { }
 };
 
+
 // Using arrays as a swapchain
 // Array of left eyes, array of right eyes
 // This more closely matches the format used by Monado
@@ -204,6 +206,7 @@ struct rendered_frame : public switchboard::event {
         , sample_time(sample_time_)
         , render_time(render_time_) { }
 };
+*/
 
 struct hologram_input : public switchboard::event {
     uint seq{};
