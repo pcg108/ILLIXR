@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include <vulkan/vulkan_core.h>
 
+#include <filesystem> 
+
 #include <opencv2/opencv.hpp>  
 #include <opencv2/imgcodecs.hpp>  
 #include <opencv2/core.hpp> 
@@ -666,18 +668,28 @@ private:
     }
 
     std::string format_float_array_as_path(const float* data, size_t count) {
-        std::ostringstream oss;
-        oss << "/scratch/prashanth/ILLIXR/build/saved_frames/";
+        namespace fs = std::filesystem;
 
+        // Get current working directory
+        fs::path base = fs::current_path() / "saved_frames";
+
+        // Create the directory if it doesn't exist
+        if (!fs::exists(base)) {
+            fs::create_directory(base);
+        }
+
+        // Build filename
+        std::ostringstream oss;
         for (size_t i = 0; i < count; ++i) {
             oss << std::fixed << std::setprecision(2) << data[i];
             if (i + 1 < count) {
                 oss << "_";
             }
         }
-
         oss << ".ppm";
-        return oss.str();
+
+        // Return full path
+        return (base / oss.str()).string();
     }
 
     int save_frame(float* float_data) {
