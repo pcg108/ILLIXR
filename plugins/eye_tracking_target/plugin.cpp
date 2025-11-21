@@ -206,6 +206,7 @@ private:
         return img_scaled;
     }
 
+/*
     void get_fovea(float& fovea_x, float& fovea_y) {
         std::vector<uint8_t> argmax_map(height_ * width_);
         float* output_data = output_tensor_->GetTensorMutableData<float>();
@@ -242,7 +243,7 @@ private:
         fovea_x = (count > 0) ? (sum_x / count) : 0.0;
         fovea_y = (count > 0) ? (sum_y / count) : 0.0;
     }
-
+*/
 
     const std::shared_ptr<switchboard>                               sb;
     const std::shared_ptr<const RelativeClock>                       _m_clock;
