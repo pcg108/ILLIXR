@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include <onnxruntime_cxx_api.h>
+// #include <onnxruntime_cxx_api.h>
 #include <opencv2/opencv.hpp>  
 #include <opencv2/imgcodecs.hpp>  
 #include <opencv2/core.hpp> 
@@ -40,11 +40,12 @@ class eye_tracking_target_impl : public eye_tracking_target {
             , _m_clock{pb->lookup_impl<RelativeClock>()}
             , _m_eye_raw{sb->get_reader<eye_type>("eye_raw")} 
             { 
+                /*
                 env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "ILLIXR_EyeTracking");
                 session_options = Ort::SessionOptions();
                 session_options.SetIntraOpNumThreads(1);
                 session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
-
+                */
                 std::string model_path = std::getenv("ILLIXR_EYE_MODEL");   
                 if (model_path.empty()) {
                     throw std::runtime_error("Model path is not set. Please set the ILLIXR_EYE_MODEL environment variable.");
@@ -61,6 +62,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
 
                 if (backend == 0) {
                     eye_tracking_backend = CP;
+                    /*
                     session = std::make_unique<Ort::Session>(env, model_path.c_str(), session_options);
 
                     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
@@ -68,6 +70,8 @@ class eye_tracking_target_impl : public eye_tracking_target {
                                                     input_shape_.data(), input_shape_.size()));
                     output_tensor_ = std::make_unique<Ort::Value>(Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(),
                                                     output_shape_.data(), output_shape_.size()));
+
+                    */
                 } else if (backend == 1) {
                     eye_tracking_backend = GPU;
                 } else if (backend == 2) {
@@ -246,13 +250,15 @@ private:
 
     switchboard::reader<eye_type>                                    _m_eye_raw;
     EYE_BACKEND eye_tracking_backend{CP}; 
-    
+
+/*
     Ort::Env env;
     Ort::SessionOptions session_options;
     Ort::RunOptions run_options;
     std::unique_ptr<Ort::Value> input_tensor_;
     std::unique_ptr<Ort::Value> output_tensor_;
     std::unique_ptr<Ort::Session> session;
+*/
 
     std::array<int64_t, 4> input_shape_{1, 1, height_, width_};
     std::array<int64_t, 4> output_shape_{1, 4, height_, width_};
