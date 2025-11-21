@@ -1,9 +1,5 @@
 set(PLUGIN_NAME plugin.eye_tracking_target${ILLIXR_BUILD_SUFFIX})
 
-
-find_package(onnxruntime REQUIRED)
-
-
 # Main plugin target
 add_library(${PLUGIN_NAME} SHARED 
     plugin.cpp
@@ -28,7 +24,7 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${OpenCV_INCLUDE_DIRS}
     ${Protobuf_INCLUDE_DIRS}
-    ${onnxruntime_INCLUDE_DIRS}
+    # ${onnxruntime_INCLUDE_DIRS}
     ${ILLIXR_SOURCE_DIR}/include
 )
 
@@ -42,7 +38,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
 target_link_libraries(${PLUGIN_NAME}
     ${OpenCV_LIBRARIES}
     ${Eigen3_LIBRARIES}
-    ${onnxruntime_LIBRARIES}
+    # ${onnxruntime_LIBRARIES}
     spdlog::spdlog
     gemmini
 )
