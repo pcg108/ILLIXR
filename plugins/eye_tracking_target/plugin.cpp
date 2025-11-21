@@ -50,7 +50,7 @@ class eye_tracking_target_impl : public eye_tracking_target {
                     throw std::runtime_error("Model path is not set. Please set the ILLIXR_EYE_MODEL environment variable.");
                 }
 
-                int backend = 2;
+                int backend = 0;
                 const char* eye_tracking_env = std::getenv("ILLIXR_EYE_TRACKING");
                 if (eye_tracking_env == nullptr) {
                     std::cout << "[illixr guest] ILLIXR_EYE_TRACKING not set. Defaulting to NPU." << std::endl;
